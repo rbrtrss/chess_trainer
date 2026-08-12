@@ -1,0 +1,39 @@
+name: chess_trainer
+description: "Calculation training that withholds all feedback until the session ends."
+# This is a personal application, not a package. Never publish it to pub.dev.
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Chess board rendering and interaction. GPL-3.0, same as this project.
+  chessground: ^10.1.1
+  # The single source of truth for legality, FEN, SAN and PGN (Constitution III).
+  # GPL-3.0.
+  dartchess: ^0.13.1
+  # State management (Constitution, Technology Constraints). MIT.
+  flutter_riverpod: ^3.0.3
+  # IList/IMap for the immutable domain types. MIT, and already a transitive
+  # dependency of chessground, so no new licence surface.
+  fast_immutable_collections: ^11.0.4
+  # @immutable annotations for the domain layer. BSD-3-Clause.
+  meta: ^1.17.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    # Bundled sample positions, authored as PGN (research D4).
+    - assets/positions/

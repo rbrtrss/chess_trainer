@@ -1,0 +1,17 @@
+[Title "Outflanking with the King"]
+[Goal "White to play and win"]
+[Themes "king and pawn, opposition, outflanking"]
+[Rating "1400"]
+[Source "Elementary endgame technique"]
+[FEN "3k4/8/3K4/3P4/8/8/8/8 w - - 0 1"]
+
+1. Kc6 {The king is already in front of its pawn on the sixth rank, which is what
+wins the game. Black holds the opposition, so White sidesteps rather than pushes:
+the king goes around, and the pawn waits.} Kc8
+(1... Ke7 2. Kc7 {The same idea mirrored — the king takes the queening square
+under control and the pawn simply runs.} Ke8 3. d6 Kf7 4. d7)
+2. d6 {Only now, with the king escorting it.} Kd8 3. d7
+{Not a check. Black's king is shouldered off both c8 and e8 by the white king and
+the pawn between them.} Ke7 4. Kc7 {The pawn queens next move. The whole technique
+was one sidestep at move one; pushing the pawn first would have thrown the win
+away.}

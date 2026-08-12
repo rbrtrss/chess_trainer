@@ -1,0 +1,16 @@
+[Title "Philidor's Legacy"]
+[Goal "White to play and force mate"]
+[Themes "smothered mate, double check, queen sacrifice"]
+[Rating "1500"]
+[Source "Classic study, after Philidor"]
+[FEN "5rk1/5Npp/8/8/8/1Q6/6PP/6K1 w - - 0 1"]
+
+1. Nh6+ {Double check. The knight hits g8 and the queen's diagonal to g8 opens
+behind it, so no capture and no block will do — the king has to move.} Kh8
+{Forced: f7 and g8 are both covered by the queen, and f8 is the rook's own square.}
+2. Qg8+ {The point. The queen is given away to force the rook onto g8, where it
+takes the last flight square away from its own king.}
+(2. Nf7+ Kg8 3. Nh6+ Kh8 {A draw by repetition. The knight can check forever,
+but checks that repeat are not progress.}) 2... Rxg8
+{Forced — the king cannot take on g8 because the knight on h6 defends it.}
+3. Nf7# {Smothered: the king's own rook and pawns do the work of the mating net.}

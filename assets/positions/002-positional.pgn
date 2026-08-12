@@ -1,0 +1,16 @@
+[Title "The Maroczy Bind"]
+[Goal "White to play and improve the position"]
+[Themes "positional, bishop pair, dark squares"]
+[Rating "1800"]
+[Source "Accelerated Dragon structure"]
+[FEN "r1bq1rk1/pp2ppbp/2np1np1/8/2PNP3/2N1B3/PP2BPPP/R2Q1RK1 w - - 4 10"]
+
+1. Qd2 {Nothing is attacked and nothing is won. The queen connects the rooks and
+prepares Bh6, offering to trade the bishop that guards Black's dark squares —
+the piece Black least wants to part with in this structure.}
+(1. Nxc6 {Releasing the bind for no reason. The knight was Black's problem, not
+White's, and the recapture repairs Black's structure toward the centre.} bxc6)
+1... Nxd4 2. Bxd4 {Recapturing toward the centre and eyeing the long diagonal.}
+Be6 3. f3 {Solid. The pawn on e4 is secured, and the plan of Bh6 and Nd5 can
+follow at leisure. There is no combination here — the whole idea is that there
+does not need to be one.}

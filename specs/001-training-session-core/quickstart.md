@@ -117,6 +117,57 @@ continuing.*
 1. On one position, build a tree of roughly 40 moves across at least 8 branches.
 2. Confirm board interaction and navigation stay smooth.
 
+## SC-001 audit: every element reachable during training
+
+SC-001 requires an exhaustive audit that no screen element varies with the correctness of
+the user's input, repeated as an automated check. This is that enumeration, taken from the
+training screen's widget tree, with the check that covers each row.
+
+| Element | What it varies with | Covered by |
+|---|---|---|
+| Progress counter "N of M" | Session index and length | `no_feedback_guard_test` (same text and style after a matching and a diverging move); `session_flow_test` SC-001 case |
+| Abandon button | Nothing — constant | `renderSnapshot` comparison |
+| Turn indicator | Side to move on the current board, i.e. the parity of the user's own moves | `renderSnapshot` comparison; `analysis_editor_test` |
+| Board pieces | The user's own moves | Excluded by design — this *is* the user's input |
+| Board `validMoves` | The rules of chess | Illegal moves are unreachable rather than rejected (D6), so there is no rejection to vary |
+| Board `lastMove` highlight | The user's own move | `boardSnapshot` (settings identical); the highlight is drawn for every move alike |
+| Board `annotations` / `shapes` | Nothing — always empty | Asserted empty before and after a move |
+| Board `kingSquareInCheck` | Nothing — always null | `boardSnapshot`. Deliberately disabled: a check highlight would differ between a checking and a non-checking move |
+| Board orientation, colours, animation duration | The position's side to move; otherwise constant | `boardSnapshot` |
+| Navigation controls (⟲ ◀ ▶) | Cursor position and tree shape | `renderSnapshot` records each button's enabled state |
+| Move rows | SAN of the user's own move; bold iff the cursor is on it | `renderSnapshot` compares styles, not strings |
+| Promote / delete buttons | Whether the cursor sits on a branch | `renderSnapshot` |
+| Done button | Nothing — always enabled | `renderSnapshot`; `session_flow_test` (FR-014) |
+| Withheld metadata | Not present at all | `no_feedback_guard_test` searches for every metadata string, rich text included |
+| Sound, haptic, latency | Not used anywhere in `lib/ui/` | Source-level assertion in `no_feedback_guard_test` |
+
+The three channels in the last row cannot be seen in a widget tree, which is why they are
+checked at the source instead: nothing in the UI layer references `HapticFeedback`,
+`SystemSound`, or `Future.delayed`, so none of them can vary with anything.
+
+## Validation record
+
+Run on a TECNO KJ6 (Android 13, 1080x2460) on 2026-08-12, against the three bundled
+positions.
+
+| Scenario | Verified | Result |
+|---|---|---|
+| 1. Nothing leaks during training | On device | Pass. The screen shows the board, "White to move", and "1 of 3" — no title, theme, rating, goal, or hint of solution length. The solution's move (`Nh6+`) and a pointless one (`Kh1`) render identically. Commit advanced straight to position 2 with no screen in between. |
+| 2. Silent branching | On device | Pass. Stepping back and playing an alternative added a sibling, left the original line intact, and produced no dialog, toast, or highlight. *Replaying an already-recorded move* was verified by widget test rather than by hand. |
+| 3. Empty and terminal analyses | Mixed | Empty commit accepted on device (positions 2 and 3 were committed with nothing entered). The terminal-position case is covered by widget test only — not reproduced by hand. |
+| 4. Review reveals everything | On device | Pass. Both trees shown, the author's notes at their moves, the metadata panel showing title, goal, themes, rating and source, and the self-grade recorded without the indicator preselecting anything. |
+| 5. Offline | Structurally | Pass, but not by toggling airplane mode. The **release** manifest declares no `INTERNET` permission — the shipped app is incapable of network access — and `layering_test` asserts no networking API appears anywhere in `lib/`. A by-hand airplane-mode run is still worth doing once. |
+| 6. Abandonment | On device | Pass. The warning reads "no answers will be shown — not for the positions you have already committed, and not for this one"; confirming returned to setup and revealed nothing. |
+| 7. Responsiveness | By test only | `tree_performance_test` builds a 42-node, 12-branch tree and asserts the domain reads a frame waits on stay well inside 16 ms. **No frame timing was measured on the device**, and a 40-move tree was not built by hand. SC-006 is not fully discharged. |
+
+Two defects came out of the device run, both fixed:
+
+- The turn indicator showed the position's *starting* side to move, so it still read "White
+  to move" after the user had played White's move and the board was waiting for Black. It
+  now follows the board, which is what SC-005 needs it to do.
+- The four grade buttons wrapped their labels mid-word ("Miss / ed it", "Goo / d") on a
+  1080-wide screen. They now shrink to fit on one line.
+
 ## Troubleshooting
 
 | Symptom | Likely cause |
