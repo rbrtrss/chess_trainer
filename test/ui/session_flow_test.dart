@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../data/repository_harness.dart';
 import 'editor_harness.dart';
 
 /// A five-position session, end to end: no correctness information appears at
@@ -46,6 +47,10 @@ void main() {
       ProviderScope(
         overrides: [
           bundledPositionsProvider.overrideWith((ref) async => positions),
+          // Storage runs in memory: the widgets are exercised against the real
+          // repository over a database that lives for the length of the test.
+          sessionRepositoryProvider
+              .overrideWithValue(inMemorySessionRepository()),
         ],
         child: const MaterialApp(home: SessionFlow()),
       ),

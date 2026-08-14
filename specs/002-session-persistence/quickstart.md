@@ -23,10 +23,22 @@ dart run build_runner build --delete-conflicting-outputs
 ```
 
 Re-run that whenever `lib/data/local/tables.dart` or `database.dart` changes. While working on
-the schema, `dart run build_runner watch --delete-conflicting-outputs` is less tedious.
+the schema, `dart run build_runner watch` is less tedious. (`--delete-conflicting-outputs` is
+accepted but ignored by build_runner 2.16; it is kept in the README because it is harmless and
+still what older setups need.)
 
 Generated files are gitignored on purpose, so this step is part of every clone and every CI
 run, not a one-off.
+
+**Changing the schema** additionally means re-recording it, because the migration test needs a
+version to migrate *from*:
+
+```bash
+dart run drift_dev schema dump lib/data/local/database.dart drift_schemas/
+dart run drift_dev schema generate drift_schemas/ test/generated/
+```
+
+Unlike the `build_runner` output, `drift_schemas/` and `test/generated/` **are committed**.
 
 ## Run the tests
 

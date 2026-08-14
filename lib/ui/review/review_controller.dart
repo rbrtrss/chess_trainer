@@ -67,11 +67,17 @@ class ReviewCursorNotifier extends Notifier<ReviewCursor> {
 final reviewCursorProvider =
     NotifierProvider<ReviewCursorNotifier, ReviewCursor>(
   ReviewCursorNotifier.new,
+  // Declared so that a nested scope overriding the session — which is how a
+  // past review is reopened from the history — gets its own cursor rather than
+  // sharing the live session's.
+  dependencies: [reviewedPositionProvider],
 );
 
 /// The position currently under review, with everything about it — this is the
 /// phase where that is allowed (FR-025).
-final reviewedPositionProvider = Provider<TrainingPosition?>((ref) {
+final reviewedPositionProvider = Provider<TrainingPosition?>(dependencies: [
+  sessionControllerProvider
+], (ref) {
   final session = ref.watch(sessionControllerProvider);
   if (session == null || session.phase.withholdsFeedback) return null;
   if (session.phase == SessionPhase.abandoned) return null;
@@ -79,7 +85,10 @@ final reviewedPositionProvider = Provider<TrainingPosition?>((ref) {
 });
 
 /// The tree the user committed for the position under review.
-final reviewedAttemptTreeProvider = Provider<VariationTree?>((ref) {
+final reviewedAttemptTreeProvider = Provider<VariationTree?>(dependencies: [
+  sessionControllerProvider,
+  reviewedPositionProvider
+], (ref) {
   final session = ref.watch(sessionControllerProvider);
   final position = ref.watch(reviewedPositionProvider);
   if (session == null || position == null) return null;
@@ -88,7 +97,10 @@ final reviewedAttemptTreeProvider = Provider<VariationTree?>((ref) {
 });
 
 /// The advisory measurement (FR-023, FR-027).
-final comparisonProvider = Provider<ComparisonResult?>((ref) {
+final comparisonProvider = Provider<ComparisonResult?>(dependencies: [
+  reviewedPositionProvider,
+  reviewedAttemptTreeProvider
+], (ref) {
   final position = ref.watch(reviewedPositionProvider);
   final attempt = ref.watch(reviewedAttemptTreeProvider);
   if (position == null || attempt == null) return null;

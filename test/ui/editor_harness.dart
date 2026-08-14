@@ -1,3 +1,4 @@
+import 'package:chess_trainer/data/session_repository.dart';
 import 'package:chess_trainer/domain/position/training_position.dart';
 import 'package:chess_trainer/domain/session/training_session.dart';
 import 'package:chess_trainer/ui/session/session_controller.dart';
@@ -8,6 +9,8 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../data/repository_harness.dart';
 
 /// Pumps the real training screen over a session built from [positions].
 ///
@@ -48,6 +51,60 @@ class _StartedSessionController extends SessionController {
 
   @override
   TrainingSession? build() => TrainingSession.start(positions);
+}
+
+/// Pumps the training screen over a session that was **stored, killed and
+/// resumed**, rather than started fresh.
+///
+/// The session goes through the real repository and the real
+/// `SessionController.resume`, so what is compared in the guard test is the app's
+/// actual resume path — not a session hand-built to look like a resumed one.
+///
+/// [committed] positions are committed before the interruption; training then
+/// resumes on the position after them, with an empty board, because
+/// uncommitted analysis is not stored (research D3).
+Future<void> pumpResumedTrainingScreen(
+  WidgetTester tester, {
+  required IList<TrainingPosition> positions,
+  int committed = 0,
+  Size surface = const Size(400, 900),
+}) async {
+  await tester.binding.setSurfaceSize(surface);
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+
+  final repository = inMemorySessionRepository();
+  final stored = await repository.start(positions);
+  for (var i = 0; i < committed; i++) {
+    await repository.commitAttempt(stored.id, sampleAttempt(positions[i]));
+  }
+  final resumable = await repository.loadInProgress();
+
+  await tester.pumpWidget(const SizedBox.shrink());
+
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        sessionRepositoryProvider.overrideWithValue(repository),
+        sessionControllerProvider.overrideWith(
+          () => _ResumedSessionController(resumable!),
+        ),
+      ],
+      // Deliberately the same widget tree as the fresh harness above: the
+      // guard test compares the two, so any structural difference introduced
+      // here would be a difference the test then reports as a leak.
+      child: const MaterialApp(home: TrainingScreen()),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+class _ResumedSessionController extends SessionController {
+  _ResumedSessionController(this.stored);
+
+  final StoredSession stored;
+
+  @override
+  TrainingSession? build() => resumedSessionFrom(stored);
 }
 
 /// Plays [san] on the board by tapping the origin square and then the

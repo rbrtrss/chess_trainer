@@ -170,6 +170,8 @@ void main() {
 
     expect(indicator.data, 'White to move');
   });
+
+  _resumptionGuards();
 }
 
 /// The distinct move rows in a snapshot.
@@ -181,6 +183,95 @@ Set<String> _moveRowKeys(List<String> snapshot) => snapshot
     .map((entry) => RegExp(r'tree-node-[\d.]+').firstMatch(entry)?.group(0))
     .nonNulls
     .toSet();
+
+/// Invariant 11: resuming reveals exactly as much as never having been
+/// interrupted, which is nothing (FR-008, SC-003).
+///
+/// Persistence gave the app a way to know something a fresh session does not —
+/// which positions have already been committed, and what was in them. The
+/// training screen still sees only a `TrainingProjection`, so the barrier built
+/// in feature 001 covers this for free; that is the claim, and this is the test
+/// of it.
+///
+/// The notice that an in-progress analysis was not kept deliberately lives on
+/// the resume prompt rather than here (FR-003). Anything that appeared on this
+/// screen only after a resume would be a difference this test would catch, and
+/// should.
+void _resumptionGuards() {
+  /// Three positions from the standard starting position, so the same move is
+  /// playable on the fresh screen and the resumed one, with metadata rich
+  /// enough for a leak to be conspicuous.
+  final positions = IList(
+    List.generate(
+      3,
+      (i) => parseTrainingPosition('''
+[Title "Secret chapter $i"]
+[Goal "White to play and win"]
+[Themes "fork, pin"]
+[Rating "${1200 + i}"]
+
+1. d4 d5 2. c4
+''', id: 'resumable-$i'),
+    ),
+  );
+
+  group('a resumed session looks exactly like an uninterrupted one', () {
+    testWidgets('at the same point in the session', (tester) async {
+      // Fresh: start and commit two positions to arrive at the third.
+      await pumpTrainingScreen(tester, positions: positions);
+      await tester.tap(find.byKey(const Key('commit-attempt')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('commit-attempt')));
+      await tester.pumpAndSettle();
+      final fresh = renderSnapshot(tester);
+      final freshBoard = boardSnapshot(tester);
+
+      // Resumed: the same two positions committed, then the app was killed.
+      await pumpResumedTrainingScreen(tester,
+          positions: positions, committed: 2);
+      final resumed = renderSnapshot(tester);
+      final resumedBoard = boardSnapshot(tester);
+
+      expect(resumed, fresh,
+          reason: 'the resumed training screen differs from a fresh one');
+      expect(resumedBoard, freshBoard,
+          reason: 'the board was configured differently after a resume');
+    });
+
+    testWidgets('after the same move has been played on it', (tester) async {
+      await pumpTrainingScreen(tester, positions: positions);
+      await tester.tap(find.byKey(const Key('commit-attempt')));
+      await tester.pumpAndSettle();
+      await playSanOnBoard(tester, 'e4');
+      final fresh = renderSnapshot(tester);
+      final freshBoard = boardSnapshot(tester);
+
+      await pumpResumedTrainingScreen(tester,
+          positions: positions, committed: 1);
+      await playSanOnBoard(tester, 'e4');
+      final resumed = renderSnapshot(tester);
+      final resumedBoard = boardSnapshot(tester);
+
+      expect(resumed, fresh);
+      expect(resumedBoard, freshBoard);
+    });
+
+    testWidgets('and shows no notice, banner or dialog of its own',
+        (tester) async {
+      await pumpResumedTrainingScreen(tester,
+          positions: positions, committed: 2);
+
+      expect(find.byType(Dialog), findsNothing);
+      expect(find.byType(SnackBar), findsNothing);
+      expect(find.byType(MaterialBanner), findsNothing);
+      // The count is a plain count, exactly as in a fresh session.
+      final progress =
+          tester.widget<Text>(find.byKey(const Key('session-progress')));
+      expect(progress.data, '3 of 3');
+    });
+  });
+}
+
 
 /// A description of everything the app chose about how to draw the screen,
 /// with the content the user supplied deliberately left out.

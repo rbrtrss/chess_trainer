@@ -10,6 +10,10 @@ analyzer:
     # import that crosses a layer boundary should be loud.
     always_use_package_imports: warning
   exclude:
+    # Drift's schema snapshots for the migration test. Written by
+    # `dart run drift_dev schema generate`, committed so the test has a version
+    # to migrate from, and not ours to lint.
+    - test/generated/**
     - build/**
     - android/**
     - ios/**

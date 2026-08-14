@@ -17,6 +17,21 @@ class SessionFlow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(sessionControllerProvider);
 
+    if (session == null) {
+      // The resume lookup is held for, rather than shown around, so the app
+      // does not open on a session-less setup screen that a moment later grows
+      // an offer to continue (SC-002). One local read of one row: if this is
+      // ever slow enough to see, the database is the problem, not the wait.
+      final resumable = ref.watch(resumeCandidateProvider);
+      if (resumable.isLoading) {
+        return const Scaffold(
+          body: Center(
+            child: CircularProgressIndicator(key: Key('resume-lookup')),
+          ),
+        );
+      }
+    }
+
     return switch (session?.phase) {
       null || SessionPhase.setup => const SessionSetupScreen(),
       SessionPhase.training => const TrainingScreen(),

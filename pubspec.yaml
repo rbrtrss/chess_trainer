@@ -25,11 +25,29 @@ dependencies:
   # @immutable annotations for the domain layer. BSD-3-Clause.
   meta: ^1.17.0
 
+  # Local persistence over SQLite (Constitution, Technology Constraints). MIT.
+  # Confined to lib/data/local/ — nothing outside it knows SQLite exists.
+  drift: ^2.34.3
+  # Resolves the database file under the app documents directory and runs it on
+  # a background isolate. MIT.
+  #
+  # Deliberately NOT sqlite3_flutter_libs: it resolves to 0.6.0+eol, arrives
+  # transitively as a no-op, and adding it reintroduces the Flutter-specific
+  # build scripts the package exists to retire (research, "A trap worth naming").
+  drift_flutter: ^0.3.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
   flutter_lints: ^6.0.0
+
+  # Code generation for the Drift schema. MIT / BSD-3-Clause.
+  # After this feature, `flutter test` and `flutter run` fail on a fresh clone
+  # until `dart run build_runner build --delete-conflicting-outputs` has been
+  # run (research D8). Generated *.g.dart files are gitignored on purpose.
+  drift_dev: ^2.34.5
+  build_runner: ^2.16.0
 
 flutter:
   uses-material-design: true

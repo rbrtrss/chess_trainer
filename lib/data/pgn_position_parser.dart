@@ -93,6 +93,57 @@ PositionMetadata _parseMetadata(PgnHeaders headers) {
   );
 }
 
+/// Writes [tree] as PGN text, for storage (research D2).
+///
+/// The `[FEN]` header makes the result self-describing: a stored row can be
+/// replayed without knowing which bundled position it came from, which is what
+/// makes "the app updated and the bundled positions changed" survivable.
+///
+/// This is the same format feature 004 will ingest, so the app has one tree
+/// interchange format in both directions rather than two — and it is legible in
+/// a database browser, which matters when diagnosing a report of lost work.
+String encodeTree(VariationTree tree) {
+  final game = PgnGame<PgnNodeData>(
+    headers: {'FEN': tree.initialPosition.fen},
+    moves: toPgnNode(tree),
+    comments: const [],
+  );
+  return game.makePgn();
+}
+
+/// The inverse of [encodeTree].
+///
+/// Throws [TreeDecodeError] when the text is not a tree this app wrote: a
+/// missing or invalid `[FEN]` header, or a move that is illegal in the position
+/// it is played from. Every move is replayed as the tree is rebuilt, so a
+/// corrupted row cannot become a tree that looks fine and behaves strangely.
+VariationTree decodeTree(String pgn) {
+  final PgnGame<PgnNodeData> game;
+  try {
+    game = PgnGame.parsePgn(pgn, initHeaders: PgnGame.emptyHeaders);
+  } on Object catch (error) {
+    throw TreeDecodeError('stored PGN could not be parsed: $error');
+  }
+
+  final fen = game.headers['FEN']?.trim();
+  if (fen == null || fen.isEmpty) {
+    throw TreeDecodeError('stored PGN has no [FEN] header');
+  }
+
+  final Position initialPosition;
+  try {
+    initialPosition = Chess.fromSetup(Setup.parseFen(fen));
+  } on Object catch (error) {
+    throw TreeDecodeError('stored PGN has an invalid [FEN] header "$fen": $error');
+  }
+
+  try {
+    return fromPgnNode(game.moves, initialPosition);
+  } on PositionParseError catch (error) {
+    throw TreeDecodeError('stored PGN is not replayable: ${error.message}');
+  }
+}
+
 /// Converts a parsed dartchess tree into the domain tree.
 ///
 /// Every move is replayed from [initialPosition] as the tree is built, so a

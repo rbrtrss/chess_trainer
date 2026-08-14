@@ -1,3 +1,4 @@
+import 'package:chess_trainer/domain/errors.dart';
 import 'package:chess_trainer/domain/position/training_projection.dart';
 import 'package:chess_trainer/ui/session/session_controller.dart';
 import 'package:chess_trainer/ui/training/analysis_editor.dart';
@@ -24,12 +25,32 @@ class _TrainingScreenState extends ConsumerState<TrainingScreen> {
   DateTime _startedAt = DateTime.now();
   String? _positionId;
 
-  void _commit(TrainingProjection projection) {
+  Future<void> _commit(TrainingProjection projection) async {
     final tree = ref.read(analysisEditorProvider).tree;
-    ref.read(sessionControllerProvider.notifier).commit(
-          tree,
-          duration: DateTime.now().difference(_startedAt),
-        );
+    try {
+      await ref.read(sessionControllerProvider.notifier).commit(
+            tree,
+            duration: DateTime.now().difference(_startedAt),
+          );
+    } on StorageWriteError catch (error) {
+      // The session does not move on, and the player is told. Letting them
+      // believe a committed analysis was stored when it was not is the one
+      // failure this feature must never produce (FR-024).
+      _reportStorageFailure(error);
+    }
+  }
+
+  void _reportStorageFailure(StorageWriteError error) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        key: const Key('storage-failure'),
+        content: Text(
+          'This device could not save your analysis, so this position has not '
+          'been committed. (${error.operation})',
+        ),
+      ),
+    );
   }
 
   /// Warns before abandoning that the review is forfeited (FR-019).
@@ -62,7 +83,11 @@ class _TrainingScreenState extends ConsumerState<TrainingScreen> {
     );
 
     if (confirmed ?? false) {
-      ref.read(sessionControllerProvider.notifier).abandon();
+      try {
+        await ref.read(sessionControllerProvider.notifier).abandon();
+      } on StorageWriteError catch (error) {
+        _reportStorageFailure(error);
+      }
     }
   }
 
