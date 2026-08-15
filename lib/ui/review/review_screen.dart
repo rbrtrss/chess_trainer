@@ -94,6 +94,8 @@ class ReviewScreen extends ConsumerWidget {
             TreeComparisonView(
               attempt: attempt,
               solution: position.solution,
+              solutionSource: position.solutionSource,
+              evaluation: position.evaluation,
               comparison: comparison,
               cursor: cursor,
               onSelect: (side, path) =>

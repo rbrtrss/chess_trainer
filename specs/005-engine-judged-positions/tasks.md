@@ -136,10 +136,10 @@ that the player can still grade themselves.
 company, and the review panes already render a solution — that is research D3 paying off. What is
 left is honesty about provenance.
 
-- [ ] T033 [US2] In `lib/ui/review/tree_comparison_view.dart`, say where the solution came from when it came from an engine, and show the evaluation of the starting position — and show neither for an authored position (FR-012, FR-014, FR-015)
-- [ ] T034 [US2] Distinguish the two empty cases in `lib/ui/review/tree_comparison_view.dart`: an author who recorded no solution, and an engine that could not produce one. The existing "No solution was recorded." covers only the first (research D6, FR-010)
-- [ ] T035 [P] [US2] Add to `test/ui/review_screen_test.dart`: an engine-judged position shows the engine's line, its evaluation and its provenance; the comparison still reports where the player's line parted; the grade buttons behave identically (FR-013, FR-014)
-- [ ] T036 [P] [US2] Add to `test/ui/review_screen_test.dart`: an authored position's review is byte-identical to what it was before this feature, and a `SolutionSource.none` position reviews to the distinct empty message rather than a blank pane (FR-015, SC-009)
+- [X] T033 [US2] In `lib/ui/review/tree_comparison_view.dart`, say where the solution came from when it came from an engine, and show the evaluation of the starting position — and show neither for an authored position (FR-012, FR-014, FR-015)
+- [X] T034 [US2] Distinguish the two empty cases in `lib/ui/review/tree_comparison_view.dart`: an author who recorded no solution, and an engine that could not produce one. The existing "No solution was recorded." covers only the first (research D6, FR-010)
+- [X] T035 [P] [US2] Add to `test/ui/review_screen_test.dart`: an engine-judged position shows the engine's line, its evaluation and its provenance; the comparison still reports where the player's line parted; the grade buttons behave identically (FR-013, FR-014)
+- [X] T036 [P] [US2] Add to `test/ui/review_screen_test.dart`: an authored position's review is byte-identical to what it was before this feature, and a `SolutionSource.none` position reviews to the distinct empty message rather than a blank pane (FR-015, SC-009)
 - [ ] T037 [US2] Verify on device: quickstart scenario 5 — review a session containing both kinds and confirm the engine's line, the evaluation and the provenance are shown for one and absent from the other
 
 **Checkpoint**: all three user stories are independently functional.

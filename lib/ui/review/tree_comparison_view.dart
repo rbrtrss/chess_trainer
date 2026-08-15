@@ -1,4 +1,6 @@
 import 'package:chess_trainer/domain/attempt/comparison.dart';
+import 'package:chess_trainer/domain/position/evaluation.dart';
+import 'package:dartchess/dartchess.dart';
 import 'package:chess_trainer/domain/tree/move_path.dart';
 import 'package:chess_trainer/domain/tree/variation_tree.dart';
 import 'package:chess_trainer/ui/review/review_controller.dart';
@@ -17,16 +19,85 @@ class TreeComparisonView extends StatelessWidget {
     required this.comparison,
     required this.cursor,
     required this.onSelect,
+    this.solutionSource = SolutionSource.author,
+    this.evaluation,
   });
 
   final VariationTree attempt;
   final VariationTree solution;
+
+  /// Where [solution] came from (005 FR-012, FR-015).
+  ///
+  /// Two positions can look identical here while one is measured against a
+  /// human's intention and the other against a machine's preference, and the
+  /// player is entitled to know which — an engine's first choice is often not
+  /// what a person would call the point of the position.
+  final SolutionSource solutionSource;
+
+  /// What the engine made of the starting position, when an engine judged it.
+  final PositionEvaluation? evaluation;
   final ComparisonResult comparison;
   final ReviewCursor cursor;
   final void Function(ReviewSide, MovePath) onSelect;
 
+  /// What an empty solution pane says, which is now two different situations.
+  ///
+  /// Until feature 005 there was one: the source recorded no line. Now there is
+  /// also a position whose author gave none *and* whose engine could not
+  /// answer, and telling a player "none was recorded" for that would be false —
+  /// one was wanted and could not be produced (005 FR-010, research D6).
+  String get _emptySolutionMessage => switch (solutionSource) {
+        SolutionSource.none =>
+          'No solution could be worked out for this position.',
+        SolutionSource.author || SolutionSource.engine =>
+          'No solution was recorded.',
+      };
+
+  /// How the engine's assessment reads, in words rather than as a raw number.
+  ///
+  /// FR-013 asks for terms the player can act on. "+1.4" means something to a
+  /// strong player and nothing to everyone else, so the number is given a
+  /// sentence around it.
+  String _assessment(PositionEvaluation evaluation) {
+    final mover = evaluation.perspective == Side.white ? 'White' : 'Black';
+    return switch (evaluation.score) {
+      MateIn(:final plies) when plies > 0 =>
+        '$mover has a forced mate in ${(plies / 2).ceil()}.',
+      MateIn(:final plies) =>
+        '$mover is being mated in ${(plies.abs() / 2).ceil()}.',
+      Centipawns(:final value) when value.abs() < 50 => 'The position is level.',
+      Centipawns(:final value) =>
+        '${value > 0 ? mover : (mover == 'White' ? 'Black' : 'White')} is '
+            'better by about ${(value.abs() / 100).toStringAsFixed(1)} of a '
+            'pawn.',
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
+    final evaluation = this.evaluation;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Shown only where an engine supplied the line. An authored position
+        // reviews exactly as it did before this feature (FR-015).
+        if (solutionSource == SolutionSource.engine && evaluation != null) ...[
+          Text(
+            'No solution was recorded here, so this line is an engine\'s best '
+            'try at depth ${evaluation.depth}, not the author\'s intention. '
+            '${_assessment(evaluation)}',
+            key: const Key('engine-provenance'),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 8),
+        ],
+        _panes(context),
+      ],
+    );
+  }
+
+  Widget _panes(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -53,7 +124,7 @@ class TreeComparisonView extends StatelessWidget {
             side: ReviewSide.solution,
             cursor: cursor,
             divergencePly: comparison.divergence?.ply,
-            emptyMessage: 'No solution was recorded.',
+            emptyMessage: _emptySolutionMessage,
             onSelect: onSelect,
           ),
         ),

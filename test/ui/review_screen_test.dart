@@ -1,5 +1,7 @@
 import 'package:chess_trainer/data/pgn_position_parser.dart';
+import 'package:dartchess/dartchess.dart';
 import 'package:chess_trainer/domain/attempt/attempt.dart';
+import 'package:chess_trainer/domain/position/evaluation.dart';
 import 'package:chess_trainer/domain/position/training_position.dart';
 import 'package:chess_trainer/domain/session/grade.dart';
 import 'package:chess_trainer/domain/session/training_session.dart';
@@ -397,6 +399,164 @@ void main() {
       expect(find.byKey(const Key('finish-review')), findsOneWidget);
     });
   });
+
+  group('an engine-judged position, at review (005 US2)', () {
+    /// The same starting position as an authored one, with an engine's line
+    /// instead of an author's.
+    TrainingPosition judged({
+      SolutionSource source = SolutionSource.engine,
+      PositionEvaluation? evaluation = const PositionEvaluation(
+        score: Centipawns(140),
+        depth: 12,
+        perspective: Side.white,
+      ),
+      bool withLine = true,
+    }) {
+      final start = Chess.initial;
+      var tree = VariationTree.empty(start);
+      if (withLine) {
+        var path = MovePath.root;
+        for (final san in ['e4', 'e5', 'Nf3']) {
+          final edit = tree.play(path, tree.positionAt(path).parseSan(san)!);
+          tree = edit.tree;
+          path = edit.path;
+        }
+      }
+      return TrainingPosition(
+        id: 'judged',
+        initialPosition: start,
+        solution: tree,
+        solutionSource: source,
+        evaluation: evaluation,
+      );
+    }
+
+    String provenance(WidgetTester tester) =>
+        tester.widget<Text>(find.byKey(const Key('engine-provenance'))).data!;
+
+    testWidgets("says the line is an engine's, not the author's (FR-012)",
+        (tester) async {
+      await pumpReview(
+        tester,
+        reviewingWith(
+          positions: IList([judged()]),
+          attemptLines: {
+            'judged': ['e4', 'e5']
+          },
+        ),
+      );
+
+      final note = provenance(tester);
+      expect(note, contains('engine'));
+      expect(note, contains('depth 12'));
+      expect(note, contains("not the author's intention"),
+          reason: "an engine's first choice is often not what a person would "
+              'call the point of the position, and the player is entitled to '
+              'know which they are being shown');
+    });
+
+    testWidgets('puts the assessment in words, not just a number (FR-013)',
+        (tester) async {
+      await pumpReview(
+        tester,
+        reviewingWith(
+          positions: IList([judged()]),
+          attemptLines: {
+            'judged': ['e4']
+          },
+        ),
+      );
+
+      expect(provenance(tester), contains('better by about 1.4'));
+    });
+
+    testWidgets('a forced mate reads as a mate, not as 327 pawns',
+        (tester) async {
+      await pumpReview(
+        tester,
+        reviewingWith(
+          positions: IList([
+            judged(
+              evaluation: const PositionEvaluation(
+                score: MateIn(6),
+                depth: 12,
+                perspective: Side.white,
+              ),
+            )
+          ]),
+          attemptLines: {
+            'judged': ['e4']
+          },
+        ),
+      );
+
+      expect(provenance(tester), contains('forced mate in 3'));
+    });
+
+    testWidgets('the comparison and the grade work exactly as before (FR-014)',
+        (tester) async {
+      // Research D3: the engine line is stored as an ordinary solution, so
+      // `compareTrees` and the grade buttons need no changes at all. This is
+      // the assertion that says so.
+      await pumpReview(
+        tester,
+        reviewingWith(
+          positions: IList([judged()]),
+          attemptLines: {
+            'judged': ['e4', 'e5']
+          },
+        ),
+      );
+
+      expect(find.byKey(const Key('solution-pane')), findsOneWidget);
+      expect(find.byKey(const Key('attempt-pane')), findsOneWidget);
+      expect(find.textContaining('followed the solution'), findsOneWidget);
+    });
+
+    testWidgets('an authored position shows no provenance note (FR-015)',
+        (tester) async {
+      await pumpReview(
+        tester,
+        reviewingWith(
+          positions: IList([positionNamed('authored')]),
+          attemptLines: {
+            'authored': ['e4']
+          },
+        ),
+      );
+
+      expect(find.byKey(const Key('engine-provenance')), findsNothing,
+          reason: 'an authored position reviews exactly as it did before this '
+              'feature');
+    });
+
+    testWidgets('a position no engine could judge says so, distinctly (FR-010)',
+        (tester) async {
+      // Not "no solution was recorded" — one was wanted and could not be
+      // produced, and telling the player otherwise would be false.
+      await pumpReview(
+        tester,
+        reviewingWith(
+          positions: IList([
+            judged(
+              source: SolutionSource.none,
+              evaluation: null,
+              withLine: false,
+            )
+          ]),
+          attemptLines: {
+            'judged': ['e4']
+          },
+        ),
+      );
+
+      expect(find.byKey(const Key('engine-provenance')), findsNothing);
+      expect(find.textContaining('No solution could be worked out'),
+          findsOneWidget);
+      expect(find.textContaining('No solution was recorded'), findsNothing);
+    });
+  });
+
 }
 
 class _FixedSessionController extends SessionController {
