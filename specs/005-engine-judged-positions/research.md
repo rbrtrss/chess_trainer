@@ -269,9 +269,35 @@ file-import path feature 003 deliberately built to need no network at all.
 `multistockfish` is adopted, defaulting to the `sf16` flavour, which is the one with the network
 embedded. The dependency is in `pubspec.yaml` with the measurement recorded beside it.
 
-**What is still unmeasured**: seconds per position, which needs the engine actually running on the
-phone. That measurement belongs to the first implementation task and cannot be done from a build
-alone.
+### Seconds per position — measured 2026-08-15 on the TECNO KJ6
+
+Five positions spanning what this feature will actually be handed, from a bare king-and-pawn
+ending to a dense middlegame, at four depths, `Threads` at 1. Milliseconds from `go` to
+`bestmove`:
+
+| Depth | K+P ending | rook ending | smothered mate | open middlegame | closed middlegame | **worst** |
+|---|---|---|---|---|---|---|
+| 8 | 7 | 9 | 12 | 43 | 11 | **43** |
+| 12 | 29 | 90 | 18 | 257 | 39 | **257** |
+| 16 | 73 | 1012 | 1 | 1249 | 265 | **1249** |
+| 20 | 90 | 1732 | 1 | 2590 | 2544 | **2590** |
+
+**Depth 12 is the choice**, and the worst case is what chose it: 257 ms. Depth 16 costs 1.25 s on
+the position that hurts most and depth 20 costs 2.6 s, which is past the line T003 drew — a study
+of a hundred hand-made positions would take two minutes at depth 16 and four at depth 20. At depth
+12 the same import spends about 26 seconds in the engine, worst case, on top of the parse.
+
+**The mean is not the number to design against.** At depth 12 it is 87 ms, which would suggest
+depth 16 is affordable; the worst case says otherwise, and an import is only as fast as its
+slowest entry.
+
+**A property worth keeping.** The smothered-mate position costs 1 ms at depths 16 and 20 because
+the search stops the moment it proves a forced mate. Hand-made tactical positions — the most
+likely thing a player sets up to practise — are the cheapest ones the engine will be given.
+
+**Still unknown**: the cost of transferring 330 evaluated positions out of the isolate, which
+feature 003's D15 flagged for parsing and which applies here too. It will be visible the first
+time a large import runs on the device (T042).
 
 **A second question this raises**, for planning rather than now: whether the two unused flavours
 can be excluded. `multistockfish_chess` publishes "only the C++ dynamic library interface, and not

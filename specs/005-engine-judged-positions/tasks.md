@@ -33,19 +33,20 @@ Single Flutter module. `lib/domain/`, `lib/data/`, `lib/ui/`, tests mirroring th
 
 ---
 
-## Phase 1: Setup — and the gate that is still open
+## Phase 1: Setup — the gate, and it passed
 
 **Purpose**: establish the baseline, and answer the one question a build could not.
 
-The size cost was measured before the dependency was adopted: 34.9 MB → 79.7 MB per install
-(research D10). **Seconds per position is still unknown**, and it decides whether the design in D2
-survives contact with a phone.
+Both costs are now known. Size was measured before the dependency was adopted: 34.9 MB → 79.7 MB
+per install. Seconds per position was measured on the phone on 2026-08-15: **257 ms at depth 12**,
+worst of five representative positions. **D2's design survives contact with hardware** and its
+fallback is not needed (research D10).
 
-- [ ] T001 Run `flutter test` and `dart analyze` on `005-engine-judged-positions` and record that both are clean — every later "still green" claim is relative to this
-- [ ] T002 Measure the engine on the target device: a throwaway harness that starts `multistockfish`, searches five representative positions at depths 8, 12, 16 and 20 with `Threads` at 1, and records wall-clock milliseconds per position for each. Write the numbers into [research.md](./research.md) under D10, replacing "still unmeasured"
-- [ ] T003 Choose the search depth and the principal-variation cap from T002's numbers and record both in [contracts/evaluation-api.md](./contracts/evaluation-api.md) §4, with one sentence saying what the depth costs per position. **If a usable depth costs more than a second or two, stop and raise D2's recorded fallback** — evaluate after import in the background — before building on the current design
+- [X] T001 Run `flutter test` and `dart analyze` on `005-engine-judged-positions` and record that both are clean — every later "still green" claim is relative to this
+- [X] T002 Measure the engine on the target device — **done 2026-08-15 on the TECNO KJ6**. Five positions, four depths, `Threads` at 1; worst case 43 ms at depth 8, 257 ms at 12, 1.25 s at 16, 2.6 s at 20. Full table in [research.md](./research.md) D10. The harness was a throwaway entrypoint and is deleted
+- [X] T003 **Depth 12, principal variation capped at 12 plies**, recorded in [contracts §4](./contracts/evaluation-api.md#4-fixed-values). Chosen on the worst case rather than the mean — 257 ms against a mean of 87 — because an import is only as fast as its slowest entry. **The gate is passed and D2's fallback is not needed**: depth 16 would have cost 1.25 s per position and put a hundred-position import over two minutes
 
-**Checkpoint**: the feature's cost is fully known. Nothing has been built yet, which is the point.
+**Checkpoint**: the feature's cost is fully known and accepted — 44.8 MB of install and about a quarter of a second per hand-made position. Nothing has been built yet, which is the point.
 
 ---
 

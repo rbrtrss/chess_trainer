@@ -131,7 +131,7 @@ repeatable. See research D4.
 | Value | Setting | Rationale |
 |---|---|---|
 | Principal variation cap | **12 plies** | Authored solutions in this app run to about nine moves. Beyond a dozen plies an engine line is mostly its own hypothesis, and presenting it as "the solution" overstates it |
-| Search depth | **set by measurement, not here** | Task 1 measures cost per position on the target device (research D10). A number chosen before that would be a guess with a decimal point |
+| Search depth | **12** | Measured on the target device (research D10): 257 ms on the worst of five representative positions, against 1.25 s at depth 16 and 2.6 s at depth 20. A study of a hundred hand-made positions costs about 26 seconds of engine time at this depth and two minutes at the next one up |
 | Per-position timeout | **yes, and generous** | A hung engine must degrade to `null` and `SolutionSource.none`, not to an import that never finishes |
 
 ---
