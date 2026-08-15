@@ -287,24 +287,48 @@ void main() {
     // this rule by naming the directory is documentation, not a dependency, and
     // the first version of this test failed on exactly that — the comment in
     // `evaluation.dart` saying the engine lives behind `lib/data/engine/`.
-    final reachers = [
-      ...Directory('lib/domain').listSync(recursive: true).whereType<File>(),
-      ...Directory('lib/ui').listSync(recursive: true).whereType<File>(),
-    ]
+    bool importsEngine(File file) => file
+        .readAsLinesSync()
+        .where((line) =>
+            line.trimLeft().startsWith('import ') ||
+            line.trimLeft().startsWith('export '))
+        .any((line) => line.contains('data/engine/'));
+
+    // The domain layer: never. It is pure Dart and has no business knowing an
+    // engine exists.
+    final domainReachers = Directory('lib/domain')
+        .listSync(recursive: true)
+        .whereType<File>()
         .where((file) => file.path.endsWith('.dart'))
-        .where((file) => file
-            .readAsLinesSync()
-            .where((line) =>
-                line.trimLeft().startsWith('import ') ||
-                line.trimLeft().startsWith('export '))
-            .any((line) => line.contains('data/engine/')))
+        .where(importsEngine)
         .map((file) => file.path)
         .toList();
 
-    expect(reachers, isEmpty,
-        reason: 'these files reach into the engine directory. The domain layer '
-            'must not know an engine exists, and the UI reaches it only '
-            'through the import service');
+    expect(domainReachers, isEmpty,
+        reason: 'the domain layer must not know an engine exists');
+
+    // The UI: exactly one file, which builds the provider — the same
+    // arrangement `connection_controller.dart` has with the Lichess client, and
+    // for the same reason. Providers live in `lib/ui/` by this project's
+    // convention, so something there has to name an implementation. Every other
+    // file goes through `Evaluator`, so no screen learns an engine exists.
+    const provider = 'lib/ui/library/library_controller.dart';
+
+    final uiReachers = Directory('lib/ui')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.dart'))
+        .where((file) => file.path != provider)
+        .where(importsEngine)
+        .map((file) => file.path)
+        .toList();
+
+    expect(uiReachers, isEmpty,
+        reason: 'these screens reach the engine directly instead of going '
+            'through $provider');
+    expect(File(provider).existsSync() && importsEngine(File(provider)), isTrue,
+        reason: 'the one permitted file no longer builds the engine, so this '
+            'rule is passing by covering nothing');
   });
 
   test('exactly one screen connects or disconnects the account (004 FR-012)',

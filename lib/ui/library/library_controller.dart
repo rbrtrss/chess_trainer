@@ -6,6 +6,8 @@
 library;
 
 import 'package:chess_trainer/data/collection_repository.dart';
+import 'package:chess_trainer/data/engine/evaluator.dart';
+import 'package:chess_trainer/data/engine/stockfish_evaluator.dart';
 import 'package:chess_trainer/data/import_service.dart';
 import 'package:chess_trainer/data/local/drift_collection_repository.dart';
 import 'package:chess_trainer/domain/library/collection.dart';
@@ -84,6 +86,29 @@ final chosenCollectionProvider = FutureProvider<Collection?>((ref) async {
 });
 
 /// Runs imports.
+/// The engine, built once and quit with the provider.
+///
+/// **This is the only file under `lib/ui/` that names the engine
+/// implementation**, in the same way `connection_controller.dart` is the only
+/// one that names the Lichess client, and for the same reason: providers live
+/// in `lib/ui/` by this project's convention, so something here has to
+/// construct it. What matters is that it is exactly one file, and that no
+/// screen imports `lib/data/engine/`. `test/domain/layering_test.dart` enforces
+/// both.
+///
+/// Nothing watches this except the import service. No screen builds it, no
+/// session touches it, and `ref.onDispose` quits it — an engine left running
+/// after an import is an engine running while the next session starts, which
+/// the constitution forbids outright (Principle III).
+final evaluatorProvider = Provider<Evaluator>((ref) {
+  final evaluator = StockfishEvaluator();
+  ref.onDispose(evaluator.dispose);
+  return evaluator;
+});
+
 final importServiceProvider = Provider<ImportService>((ref) {
-  return DefaultImportService(ref.watch(collectionRepositoryProvider));
+  return DefaultImportService(
+    ref.watch(collectionRepositoryProvider),
+    evaluator: ref.watch(evaluatorProvider),
+  );
 });

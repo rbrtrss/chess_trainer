@@ -12,6 +12,8 @@ import 'package:chess_trainer/domain/library/import_outcome.dart';
 import 'package:chess_trainer/ui/library/import_screen.dart';
 import 'package:chess_trainer/ui/library/library_controller.dart';
 import 'package:file_selector/file_selector.dart';
+
+import '../data/engine/fake_evaluator.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -44,6 +46,7 @@ void main() {
     required String pgn,
     String fileName = 'study.pgn',
     Duration parseDelay = Duration.zero,
+    FakeEvaluator? evaluator,
   }) async {
     await tester.binding.setSurfaceSize(const Size(400, 1400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -60,6 +63,7 @@ void main() {
           }
           return parseImport(source, newId: timestampIds());
         },
+        evaluator: evaluator,
       ),
       XFile.fromData(Uint8List.fromList(utf8.encode(pgn)), name: fileName),
     );
@@ -180,6 +184,46 @@ void main() {
       expect(find.textContaining('1 entry has no legal move'), findsOneWidget);
       expect(find.textContaining('1 entry have'), findsNothing);
       expect(find.textContaining('entries has'), findsNothing);
+    });
+  });
+
+  group('both kinds of position are just positions (005 FR-005, FR-006)', () {
+    testWidgets('a mixed source reports them together and singles out neither',
+        (tester) async {
+      // The report has one count, and an engine-judged position is inside it.
+      // FR-005 forbids describing such an entry as a problem, a limitation or a
+      // lesser kind of position — and the cheapest way to obey that is for the
+      // report to have no idea which is which, which is what research D3 bought
+      // by storing the engine's line as an ordinary solution.
+      await pumpImport(tester, evaluator: FakeEvaluator(), pgn: '''
+[Event "Author knew the answer"]
+[FEN "5rk1/5Npp/8/8/8/1Q6/6PP/6K1 w - - 0 1"]
+
+1. Nh6+ Kh8 *
+
+[Event "Set up by hand"]
+[FEN "3k4/8/3K4/3P4/8/8/8/8 w - - 0 1"]
+
+*
+''');
+      await runImport(tester);
+
+      expect(
+        tester.widget<Text>(find.byKey(const Key('import-added-count'))).data,
+        '2 positions added.',
+      );
+      expect(find.byKey(const Key('import-rejected-count')), findsNothing,
+          reason: 'nothing was rejected, so nothing is reported as a problem');
+
+      // And no wording anywhere singles out the engine-judged one.
+      final everything = tester
+          .widgetList<Text>(find.byType(Text))
+          .map((text) => text.data ?? '')
+          .join(' ')
+          .toLowerCase();
+      expect(everything, isNot(contains('engine')));
+      expect(everything, isNot(contains('no solution')));
+      expect(everything, isNot(contains('could not be used')));
     });
   });
 
