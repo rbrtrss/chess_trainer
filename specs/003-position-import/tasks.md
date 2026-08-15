@@ -211,7 +211,7 @@ longer be trained while the played session still shows its full review.
 - [X] T064 [P] Update `README.md`: content now comes from the player, the app declares `INTERNET` and why, the guarantee that replaced the old one, and that a factory reset now costs the history (`allowBackup="false"`)
 - [X] T065 [P] Update the fixture-fetching and troubleshooting notes in `specs/003-position-import/quickstart.md` with anything learned while implementing
 - [X] T066 Work through every row of the [lichess-api error contract](./contracts/lichess-api.md#error-contract) on device — **done 2026-08-15**, except two rows judged not reproducible without harming something; see "The error contract on device" below (SC-011, quickstart scenario 6)
-- [ ] T067 Measure a 300-chapter import on device against SC-007; if the isolate transfer cost dominates, apply the recorded fallback of sending PGN strings back instead of parsed trees (research D15)
+- [X] T067 Measure a 300-chapter import on device against SC-007 — **done 2026-08-15. The recorded fallback is not needed.** 330 chapters, all with a `[FEN]`, 489 KB, imported from a file on the phone in **under 3 seconds**, with no ANR and no dropped-frame warnings. The isolate transfer does not dominate, so the D15 fallback of sending PGN strings back instead of parsed trees stays unbuilt. See "The 300-chapter import" below
 - [X] T068 Install this build over a 002 build on device and confirm history survives and the samples appear (FR-040, quickstart scenario 10)
 - [X] T069 Run the full offline pass — **done 2026-08-15** with airplane mode actually on (`Active default network: none`): cold launch with no spinner and the account read from local storage, an unfinished session **resumed**, trained, committed and reviewed with its full solutions, plus history and library, all on a collection that had come from Lichess. An import attempted in that state gave the offline message. The zero-request half was measured separately and more precisely than packet inspection, by reading the app's uid byte counters around four cold starts and a whole session: 0 bytes, against 11,448 for the one action that should fetch (SC-009, quickstart scenario 8)
 - [X] T070 Run `dart analyze` and the whole suite with `flutter test` — both clean. `dart format .` deliberately not run; see "What was done, and what was not"
@@ -485,3 +485,32 @@ anything in the my-studies context that is really "no account" gets the my-studi
 everything else keeps its own. The regression test reproduces the exact asymmetry — a credential
 present, so the account reads connected and the list renders, while the list request is refused —
 and was confirmed to fail with the old wording before the fix was kept.
+
+### The 300-chapter import — 2026-08-15
+
+`study_multi_chapter.pgn` repeated ten times with distinct `[Event]` prefixes: **330 chapters,
+all with a `[FEN]`, 489 KB**, comfortably inside the 500-entry cap (D16). Placed on the phone and
+picked through the file picker, twice.
+
+**Result: 330 positions added, none rejected, in under 3 seconds.** SC-007 budgets ten seconds for
+one hundred positions from a file; this is 3.3× the volume in under a third of the time.
+
+**How precise that number is, and is not.** It is an upper bound, not a stopwatch reading. Polling
+the UI costs about 2.5 seconds per `uiautomator` cycle, and the report was already on screen at
+the first poll of both runs — 3.03 s for the full parse-and-store, 2.6 s for a confirmed duplicate,
+which reuses the parsed result and only writes. Both runs mean the same thing: **the import
+finishes faster than this measurement method can see.** A real figure would need instrumentation
+inside the app, and nothing here depends on having one.
+
+**What it settles.** Research D15 moved parsing off the UI isolate and recorded a fallback in case
+the cost of transferring parsed trees back dominated: send the PGN strings instead. It does not
+dominate. The parse alone was 61 ms for 297 positions on the development machine, and the store
+phase measured 2.6 s here, so the transfer is somewhere inside a margin too small to matter. **The
+fallback stays unbuilt**, which is the outcome that costs the least code.
+
+`adb logcat` showed no ANR for the package and no dropped-frame warnings across either run.
+
+**One thing that was not observed.** SC-007 also asks for *visible* progress, and the progress
+indicator was never caught on device — the import completes before a poll can catch it. That is
+the good failure of that requirement, and the widget test still covers the progress states
+against an injected delay.
