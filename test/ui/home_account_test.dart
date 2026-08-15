@@ -320,6 +320,51 @@ void main() {
     });
   });
 
+  group('a disconnect that fails says so (FR-011)', () {
+    testWidgets('the player is told, and the bar still says connected',
+        (tester) async {
+      // Found by review, not by a device: `_logIn` catches and reports, and
+      // `_logOut` did not — so a credential that would not clear left the
+      // exception escaping the button callback while the bar went on saying
+      // "Connected" with nothing to explain it. Revoking server-side is
+      // best-effort and already swallowed; this is the local clear failing.
+      await connect();
+      auth.logOutFailure = StorageWriteError('clearing the credential', 'keystore unavailable');
+      await pumpHome(tester);
+
+      await tester.tap(find.byKey(const Key('disconnect-lichess')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('account-logout-failure')), findsOneWidget);
+      expect(find.textContaining('still connected'), findsOneWidget);
+      expect(find.byKey(const Key('account-connected')), findsOneWidget,
+          reason: 'the credential did not clear, so "connected" is the truth — '
+              'what was missing is the player being told the tap failed');
+    });
+
+    testWidgets('and the message is about disconnecting, not importing',
+        (tester) async {
+      // messageForNetworkError's storage branch says "could not save the
+      // import" and its fallback says "That import did not work". Reusing
+      // either here would name the right kind of fault and the wrong activity,
+      // which is the defect the device pass found twice in other places.
+      await connect();
+      auth.logOutFailure = StorageWriteError('clearing the credential', 'keystore unavailable');
+      await pumpHome(tester);
+
+      await tester.tap(find.byKey(const Key('disconnect-lichess')));
+      await tester.pumpAndSettle();
+
+      final snack = tester
+          .widget<Text>(find.descendant(
+            of: find.byKey(const Key('account-logout-failure')),
+            matching: find.byType(Text),
+          ))
+          .data!;
+      expect(snack.toLowerCase(), isNot(contains('import')));
+    });
+  });
+
   group('the account says nothing about the content (FR-021)', () {
     testWidgets('the bar is identical with no collections and with several',
         (tester) async {
@@ -408,6 +453,9 @@ class _StubAuth implements LichessAuth {
   /// Thrown by [logIn] when set.
   Object? failure;
 
+  /// Thrown by [logOut] when set — the local credential refusing to clear.
+  Object? logOutFailure;
+
   @override
   Future<LichessConnection> logIn() async {
     final failure = this.failure;
@@ -428,6 +476,9 @@ class _StubAuth implements LichessAuth {
 
   @override
   Future<void> logOut() async {
+    final failure = logOutFailure;
+    if (failure != null) throw failure;
+
     logOuts++;
     await _credentials.clear();
   }

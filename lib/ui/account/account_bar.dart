@@ -133,6 +133,22 @@ class _AccountBarState extends ConsumerState<AccountBar> {
       // Imported collections are untouched: they are local content now, not a
       // view onto the account (FR-011).
       await ref.read(connectionControllerProvider).logOut();
+    } on Object {
+      // Revoking server-side is best-effort and already swallowed; what reaches
+      // here is the local credential failing to clear, which leaves the player
+      // connected. Without this the exception escapes the button callback as an
+      // unhandled async error and the bar goes on saying "Connected" with
+      // nothing to explain why the tap did nothing — an app stopping for
+      // reasons of its own, which is what every message in this project exists
+      // to prevent.
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            key: Key('account-logout-failure'),
+            content: Text(disconnectFailedMessage),
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }

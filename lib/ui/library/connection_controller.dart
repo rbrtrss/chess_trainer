@@ -136,6 +136,18 @@ const String studiesNeedAccountMessage =
     'Picking from your own studies needs a connected Lichess account. Connect '
     'one on the home screen.';
 
+/// A disconnect that did not happen (FR-011).
+///
+/// Deliberately not `messageForNetworkError`, whose every branch is written
+/// about importing — its storage branch says "could not save the import" and
+/// its fallback says "That import did not work", and neither is about anything
+/// the player just did. Revoking the token server-side is best-effort and
+/// already ignored; what can fail here is clearing the credential locally, and
+/// if that fails the player is still connected, which they need telling.
+const String disconnectFailedMessage =
+    'This device could not forget the login, so you are still connected. Try '
+    'again.';
+
 /// Turns a network failure into something a player can act on (SC-011).
 ///
 /// Every branch names what happened *and* what to do. A message that only
