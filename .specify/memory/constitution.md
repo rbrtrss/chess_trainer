@@ -51,6 +51,29 @@ promotion, repetition, PGN variation nesting) that we will get wrong.
 `chessground` is the single board rendering and interaction surface. It holds no chess
 logic by design; game state is owned by our domain layer and handed to it.
 
+**Stockfish, through `multistockfish`, is the single source of position evaluation.**
+Hand-rolled evaluation, heuristics that score a move, and "good enough" approximations of
+what a strong player would choose are prohibited for the same reason hand-rolled move
+generation is: we would get them wrong, and the wrongness would be invisible.
+
+These two authorities divide cleanly and MUST stay divided. **`dartchess` says what is legal;
+the engine says what is good.** The engine MUST NOT be consulted about legality, terminal
+positions, or anything `dartchess` can answer — one question, one source of truth. The
+engine MUST NOT be consulted at all where a study author supplied a line; an author's
+intention outranks a machine's preference, and the engine exists to supply a standard only
+where none was given.
+
+Three constraints follow, and they are constitutional rather than incidental:
+
+- **The engine MUST NOT run while a training or review session exists.** Evaluation happens
+  at import. This is not a performance rule; it is how Principle I is kept structurally. A
+  search running beside a player who is calculating leaks through latency, battery and heat,
+  and none of those channels can be caught by a widget test.
+- **Evaluations MUST be computed once, stored, and read thereafter.** Never recomputed for
+  display. A player's history must not change because the engine was upgraded.
+- **Engine code MUST live in one directory** and be unreachable from the domain and UI
+  layers, on the same terms as networking.
+
 ### IV. Layered Architecture
 
 Three layers, dependencies pointing strictly inward:
@@ -86,14 +109,28 @@ value while every test still passes and the app still looks fine.
 
 ## Technology & Licensing Constraints
 
-**Stack.** Flutter + Dart, Android-first. Riverpod for state, Drift for local persistence.
-iOS is out of scope but MUST NOT be actively precluded by platform-specific choices.
+**Stack.** Flutter + Dart, Android-first. Riverpod for state, Drift for local persistence,
+`multistockfish` for position evaluation. iOS is out of scope but MUST NOT be actively
+precluded by platform-specific choices.
 
-**Licensing.** This project is GPL-3.0. `chessground` and `dartchess` are GPL-3.0, and
-this is a deliberate, accepted consequence of using them — they are the Lichess team's own
-packages and give us a variation-aware PGN parser and a production chessboard for free.
+**Licensing.** This project is GPL-3.0. `chessground`, `dartchess` and `multistockfish` are
+GPL-3.0, and this is a deliberate, accepted consequence of using them — they are the Lichess
+team's own packages and give us a variation-aware PGN parser, a production chessboard and a
+world-class engine for free.
 Every new dependency MUST be license-checked for GPL-3.0 compatibility before adoption.
 Adding an incompatible dependency is a constitution violation, not a minor issue.
+
+**The engine, and what it costs.** `multistockfish` is the most expensive dependency in this
+project and the price was measured before it was paid: the arm64 install goes from 34.9 MB to
+79.7 MB. Almost all of that is one embedded neural network — 39.5 MB of it — against 1.5 MB
+for the same engine with no network inside.
+
+Embedding was chosen over downloading that network on first use, which would have cost about
+1.5 MB. The reason is Principle II and nothing else: **an embedded network means this app
+evaluates positions on a phone that has never been online**, and the alternative would have
+put a network dependency into the one content path deliberately built to need none. Any future
+proposal to shrink the app by fetching the network is a proposal to weaken Principle II, and
+MUST be argued as one.
 
 **Lichess API.** Two facts drive design and are easy to get wrong:
 
@@ -144,4 +181,46 @@ Play Store release is a possible future, not a current requirement, and MUST NOT
 to justify speculative architecture today. The bar for added complexity is a concrete
 problem, not an anticipated one.
 
-**Version**: 1.0.0 | **Ratified**: 2026-08-12 | **Last Amended**: 2026-08-12
+## Amendment History
+
+### 1.1.0 — 2026-08-15 — the engine
+
+**Added**: Stockfish, via `multistockfish`, as a second delegated chess authority (Principle
+III); the engine's constraints and its measured cost (Technology & Licensing Constraints).
+
+**Rationale.** Feature 005 needs a standard of correctness for positions a study author set up
+without one — the app refused such a chapter on a real device on 2026-08-15, which is what
+prompted the feature. No remote source can supply it: Lichess's cloud evaluation returns a
+cached evaluation "if available" and 404 otherwise, and a position invented this afternoon by
+one person is precisely the position nobody has cached. An engine on the device was therefore
+not a preference but the only remaining option, and a major dependency arriving in this project
+should arrive through this document rather than through a `pubspec.yaml` diff.
+
+**Review of open specifications, as this section's own procedure requires.** Four consequences,
+none of which invalidate completed work:
+
+- **001's premise changes, and its conclusion survives.** The specification says "because no
+  engine evaluates the user's moves, the app cannot judge lines the solution does not contain.
+  This is why the user's self-grade is authoritative." The first sentence stops being true. The
+  self-grade remains authoritative — 005 FR-014 requires it — but it now rests on **a choice
+  rather than on incapacity**, which is a stronger position to hold and a harder one to keep.
+- **001's Out of Scope excluded "any engine evaluation, best-move suggestion, or accuracy
+  scoring."** That was true of feature 001 and stays true of it. Feature 005 narrows the
+  exclusion to positions with no author's line; everything else — suggestions, accuracy scores,
+  an evaluation bar — remains out of scope and is not licensed by this amendment.
+- **003's FR-006 is superseded in one clause.** It requires rejecting an entry "with no moves at
+  all". Accepting exactly those entries is what 005 exists to do. The other rejections in that
+  requirement stand unchanged.
+- **Two source comments become false when 005 lands**, and must be corrected rather than left:
+  `lib/domain/attempt/comparison.dart` ("no engine evaluates anything here") and
+  `lib/ui/review/grade_buttons.dart` ("without an engine there is nothing here that could make
+  that suggestion honestly"). Both explain *why* a rule exists, and after 005 the reason changes
+  even though the rule does not.
+
+**Not amended**: Principle I, which is non-negotiable and which this amendment strengthens
+rather than touches — its list of withheld evidence already named "evaluation glyphs", so the
+document anticipated an engine's output as evidence before there was an engine to produce it.
+
+---
+
+**Version**: 1.1.0 | **Ratified**: 2026-08-12 | **Last Amended**: 2026-08-15

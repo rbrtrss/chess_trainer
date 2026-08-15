@@ -278,10 +278,11 @@ can be excluded. `multistockfish_chess` publishes "only the C++ dynamic library 
 the dart bindings", so using it alone means writing the bindings this project would otherwise get
 for free. Worth an hour of investigation before accepting either number above.
 
-## D11: The constitution should be amended, and that is the owner's call
+## D11: The constitution was amended — v1.1.0, 2026-08-15
 
-**Decision.** Recommend a MINOR amendment adding the engine to Technology Constraints. Do not
-proceed as though it has been made.
+**Decision.** A MINOR amendment adding the engine to Principle III and to Technology Constraints.
+**Made on 2026-08-15, by the owner**, following the document's own procedure: a written rationale,
+a version bump, and a review of open specifications for consequences.
 
 **Rationale.** The constitution's Technology & Licensing Constraints name Flutter, Dart, Riverpod,
 Drift, `chessground` and `dartchess`, and require that **every new dependency be licence-checked
@@ -289,12 +290,28 @@ for GPL-3.0 compatibility before adoption**. The licence check passes: the packa
 same licence as this project and as the two Lichess packages it already depends on, adopted for
 the same reason.
 
-What is not covered is the engine's *standing*. Principle III says `dartchess` is the single
+What was not covered was the engine's *standing*. Principle III said `dartchess` is the single
 source of truth for move legality and that hand-rolled chess logic is prohibited; an engine is a
 second piece of delegated chess authority, of a different kind — not what is legal, but what is
-good. That is a genuine addition to the technology the project is built on, and the constitution's
-own amendment procedure asks for a written rationale and a version bump rather than a silent
-arrival.
+good. That is a genuine addition to the technology the project is built on, and it arrived through
+the document rather than through a `pubspec.yaml` diff.
+
+**What the amendment added beyond naming the dependency**, and what implementation is now bound by:
+
+- `dartchess` says what is legal; the engine says what is good. The engine **MUST NOT** be asked
+  about legality or terminal positions — one question, one source of truth. This makes D9 a
+  constitutional requirement rather than a design preference.
+- The engine **MUST NOT** run while a training or review session exists. D2 is now constitutional.
+- Evaluations **MUST** be computed once and stored. D4's conclusion is now constitutional.
+- Engine code **MUST** live in one directory, unreachable from domain and UI. D7, likewise.
+
+**The review of open specifications turned up four consequences**, recorded in the amendment
+history. The one worth repeating here: feature 001 justified the self-grade's authority with
+"because no engine evaluates the user's moves, the app cannot judge lines the solution does not
+contain". That premise dies with this feature. The self-grade stays authoritative — 005 FR-014
+requires it — but it now rests on **a choice rather than on incapacity**, which is a stronger
+position and a harder one to keep. Two source comments saying the same thing become false when
+this feature lands and are listed for correction.
 
 **One thing the constitution already anticipated.** Principle I's list of withheld evidence names
 "puzzle themes, puzzle ratings, study chapter titles, comments, NAGs, and **evaluation glyphs**".
