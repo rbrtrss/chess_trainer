@@ -114,7 +114,7 @@ and the side to move, while review shows the author's analysis and notes.
 - [X] T031 [US1] Create `lib/ui/library/import_screen.dart`: pick, name, determinate progress, duplicate warning, then the report — using `import_report_view.dart`
 - [X] T032 [US1] Add the Riverpod providers for `CollectionRepository` and `ImportService` in `lib/ui/app.dart`, and route to the import screen
 - [X] T033 [US1] Change `lib/ui/session/session_setup_screen.dart` and `lib/ui/session/session_controller.dart` to source positions from `CollectionRepository` instead of `BundledPositionSource`, so an imported collection is trainable — the chooser itself is US3
-- [ ] T034 [US1] Verify on device: import a real study file, train it, review it, and confirm the report's counts match the file's chapter count (quickstart scenarios 1 and 2)
+- [X] T034 [US1] Verify on device: import a real study file, train it, review it, and confirm the report's counts match the file's chapter count (quickstart scenarios 1 and 2) — **the file half was closed on 2026-08-15**, during feature 004's device pass; see "The file picker, finally" below. Training and reviewing were not repeated on this collection, because training is collection-agnostic and the same path was already exercised on the Lichess-imported one
 
 **Checkpoint**: The feature is independently useful with no network code written. US1 delivered.
 
@@ -153,7 +153,7 @@ line that follows lands against a rule that is already there (research D14).
 - [X] T049 [P] [US2] Create `lib/ui/library/connection_controller.dart` — log in, log out, current connection, expiry surfaced as "log in again" and never as a silent failure
 - [X] T050 [P] [US2] Create `lib/ui/library/study_picker_screen.dart` listing the account's studies (FR-013), with a paste-an-address path that works without logging in for a public study (FR-011)
 - [X] T051 [US2] Wire the Lichess paths into `lib/ui/library/import_screen.dart`, sharing the progress, duplicate check and report already built in US1
-- [ ] T052 [US2] Verify on device: import a public study with no login, log in, import a private one, then enable airplane mode and train it (quickstart scenarios 4 and 5)
+- [ ] T052 [US2] Verify on device: import a public study with no login, log in, import a private one, then enable airplane mode and train it (quickstart scenarios 4 and 5) — **two of the four done on 2026-08-15** during feature 004's pass: a public study imported with no login at all, on a profile that had never connected; and the login itself run by the account holder, though from the home screen this feature did not have. Importing a *private* study and training under airplane mode are still not done
 
 **Checkpoint**: US1 and US2 both work independently. The app has a credential for the first time.
 
@@ -213,7 +213,7 @@ longer be trained while the played session still shows its full review.
 - [ ] T066 Work through every row of the [lichess-api error contract](./contracts/lichess-api.md#error-contract) on device — offline, `401`, `429`, `404`, cancelled login, revoked token, killed mid-fetch, storage full — confirming each names what happened and leaves no partial collection (SC-011, quickstart scenario 6)
 - [ ] T067 Measure a 300-chapter import on device against SC-007; if the isolate transfer cost dominates, apply the recorded fallback of sending PGN strings back instead of parsed trees (research D15)
 - [X] T068 Install this build over a 002 build on device and confirm history survives and the samples appear (FR-040, quickstart scenario 10)
-- [ ] T069 Run the full offline pass: everything except import and login with networking disabled, plus packet inspection confirming zero requests to `lichess.org` during a training session (SC-009, quickstart scenario 8)
+- [ ] T069 Run the full offline pass: everything except import and login with networking disabled, plus packet inspection confirming zero requests to `lichess.org` during a training session (SC-009, quickstart scenario 8) — **the measurement half is done, and better than planned.** On 2026-08-15 the app's uid byte counters were read from `dumpsys netstats` around four cold starts and a whole session: **0 bytes**, with the control in the same numbers, since opening the study picker moved 11,448. That is stronger than packet inspection for this claim, because it attributes traffic to this app rather than to the device. What is still not done is running the app with networking *disabled* — the pass above had the radios on throughout
 - [X] T070 Run `dart analyze` and the whole suite with `flutter test` — both clean. `dart format .` deliberately not run; see "What was done, and what was not"
 
 ---
@@ -415,3 +415,35 @@ What was done instead, so the gap is as small as it can be without a device:
 in a future version. It builds today. If it stops, the fallback is `url_launcher` plus
 `app_links`, which research D3 already evaluated and rejected only on the grounds of extra
 wiring.
+
+### The file picker, finally — 2026-08-15
+
+`file_selector` through the Storage Access Framework was the one path this feature shipped and
+never ran on hardware. It was recorded above as "distinct code, and unexercised on device.
+Covered by tests, not by hardware", and it stayed that way through feature 004's own pass, whose
+throwaway-user trick could not help: `adb push` writes to user 0 whatever the foreground user is,
+and copying across users is refused, so there was no way to put a PGN where the picker in a
+secondary user could see it.
+
+It was closed on the owner's own profile instead, with him choosing the file by hand — which is
+also the right division of labour, since browsing his file picker means reading his files.
+
+`study_multi_chapter.pgn` (study `9LjyYZ9N`, 33 chapters, **all 33 with a `[FEN]`**) was placed on
+the device and picked. The prediction was written down before the button was pressed — 33
+imported, 0 rejected — and the result was `t034-fixture · t034-fixture.pgn · 33 positions`. The
+whole chain ran on a real device for the first time: `OPEN_DOCUMENT` with `*/*`, the returned
+`XFile`, the parse, the collection, and the origin recorded as the file's own name. The
+collection was deleted afterwards and both fixtures removed from the device.
+
+**One thing worth keeping from the noise around it.** The first attempt used
+`study_mixed_chapters.pgn`, which is study `55NSdxBQ` — the same study already in the library,
+fetched over the network on 2026-08-14. It was refused as a duplicate. That is content-hash
+duplicate detection (D13) recognising the same study arriving by a *different route*, file versus
+fetch, which no test covers and which nobody had thought to check.
+
+**And a warning for anyone driving this by `adb`.** Two things wasted time here and neither was a
+defect: `uiautomator` writes `content-desc='...'` with **single** quotes when the value itself
+contains double quotes, so a naive `content-desc="[^"]*"` grep silently drops exactly the
+messages that quote a collection name; and the phone rotated to landscape mid-run, after which
+every hard-coded portrait swipe went somewhere useless. Read bounds from the dump every time
+rather than remembering them.
