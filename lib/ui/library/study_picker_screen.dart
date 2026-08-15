@@ -31,7 +31,7 @@ class StudyPickerScreen extends ConsumerWidget {
       body: SafeArea(
         child: account.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => _Message(text: messageForNetworkError(error)),
+          error: (error, _) => _Message(text: messageForStudyListError(error)),
           data: (connected) => switch (connected) {
             AccountConnected() => const _StudyList(),
             // No login button, by design (FR-015, 004 research D7): import does
@@ -60,7 +60,7 @@ class _StudyList extends ConsumerWidget {
 
     return studies.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => _Message(text: messageForNetworkError(error)),
+      error: (error, _) => _Message(text: messageForStudyListError(error)),
       data: (all) {
         if (all.isEmpty) {
           return const _Message(

@@ -136,6 +136,21 @@ const String studiesNeedAccountMessage =
     'Picking from your own studies needs a connected Lichess account. Connect '
     'one on the home screen.';
 
+/// What to say when listing the player's own studies fails.
+///
+/// The my-studies context never talks about "that study", because the player
+/// named none — but `NotLoggedInError` carries wording written for someone who
+/// pasted a private address, and it reaches here whenever the account reads as
+/// disconnected. That includes the case nobody predicted: a token revoked on
+/// lichess.org, where the 401 clears the credential mid-request and the player
+/// is left reading about a study they never mentioned.
+///
+/// Found on a device on 2026-08-15, by revoking a real token. It is the third
+/// time this one message has leaked into a context it was not written for.
+String messageForStudyListError(Object error) => error is NotLoggedInError
+    ? studiesNeedAccountMessage
+    : messageForNetworkError(error);
+
 /// A disconnect that did not happen (FR-011).
 ///
 /// Deliberately not `messageForNetworkError`, whose every branch is written

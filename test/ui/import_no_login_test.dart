@@ -7,6 +7,7 @@ import 'package:chess_trainer/data/lichess/lichess_api.dart';
 import 'package:chess_trainer/data/lichess/lichess_auth.dart';
 import 'package:chess_trainer/data/local/database.dart';
 import 'package:chess_trainer/data/local/drift_collection_repository.dart';
+import 'package:chess_trainer/domain/errors.dart';
 import 'package:chess_trainer/domain/lichess/lichess_connection.dart';
 import 'package:chess_trainer/ui/library/import_screen.dart';
 import 'package:chess_trainer/ui/library/library_controller.dart';
@@ -250,6 +251,44 @@ void main() {
         contains('home screen'),
       );
       expectNoLoginOffered('inside the picker with no account');
+    });
+  });
+
+  group('a token revoked on lichess.org (T066, the 401 row)', () {
+    testWidgets('the picker never blames a study the player did not name',
+        (tester) async {
+      // Found on a device by revoking the app's real token at
+      // lichess.org/account/oauth/token. The 401 clears the credential
+      // mid-request, the account then reads as disconnected, `myStudiesProvider`
+      // throws `NotLoggedInError`, and the picker rendered its wording — "That
+      // study is not public" — to a player who had asked for *their own*
+      // studies and named nothing. Third time this one message has leaked into
+      // a context it was not written for.
+      // The credential is still there, so the account reads *connected* and the
+      // picker renders its list — and the list is what fails. That asymmetry is
+      // the whole bug: the outer state said connected while the request had
+      // already been refused.
+      await connect();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            credentialStoreProvider.overrideWithValue(credentials),
+            lichessAuthProvider.overrideWithValue(auth),
+            lichessApiProvider.overrideWithValue(api),
+            myStudiesProvider.overrideWith((ref) async => throw NotLoggedInError()),
+          ],
+          child: const MaterialApp(home: StudyPickerScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final message = tester
+          .widget<Text>(find.byKey(const Key('study-picker-message')))
+          .data!;
+      expect(message, isNot(contains('That study')),
+          reason: 'the player named no study');
+      expect(message.toLowerCase(), contains('your own studies'));
+      expect(message, contains('home screen'));
     });
   });
 

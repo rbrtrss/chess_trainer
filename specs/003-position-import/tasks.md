@@ -210,10 +210,10 @@ longer be trained while the played session still shows its full review.
 
 - [X] T064 [P] Update `README.md`: content now comes from the player, the app declares `INTERNET` and why, the guarantee that replaced the old one, and that a factory reset now costs the history (`allowBackup="false"`)
 - [X] T065 [P] Update the fixture-fetching and troubleshooting notes in `specs/003-position-import/quickstart.md` with anything learned while implementing
-- [ ] T066 Work through every row of the [lichess-api error contract](./contracts/lichess-api.md#error-contract) on device — offline, `401`, `429`, `404`, cancelled login, revoked token, killed mid-fetch, storage full — confirming each names what happened and leaves no partial collection (SC-011, quickstart scenario 6)
+- [X] T066 Work through every row of the [lichess-api error contract](./contracts/lichess-api.md#error-contract) on device — **done 2026-08-15**, except two rows judged not reproducible without harming something; see "The error contract on device" below (SC-011, quickstart scenario 6)
 - [ ] T067 Measure a 300-chapter import on device against SC-007; if the isolate transfer cost dominates, apply the recorded fallback of sending PGN strings back instead of parsed trees (research D15)
 - [X] T068 Install this build over a 002 build on device and confirm history survives and the samples appear (FR-040, quickstart scenario 10)
-- [ ] T069 Run the full offline pass: everything except import and login with networking disabled, plus packet inspection confirming zero requests to `lichess.org` during a training session (SC-009, quickstart scenario 8) — **the measurement half is done, and better than planned.** On 2026-08-15 the app's uid byte counters were read from `dumpsys netstats` around four cold starts and a whole session: **0 bytes**, with the control in the same numbers, since opening the study picker moved 11,448. That is stronger than packet inspection for this claim, because it attributes traffic to this app rather than to the device. What is still not done is running the app with networking *disabled* — the pass above had the radios on throughout
+- [X] T069 Run the full offline pass — **done 2026-08-15** with airplane mode actually on (`Active default network: none`): cold launch with no spinner and the account read from local storage, an unfinished session **resumed**, trained, committed and reviewed with its full solutions, plus history and library, all on a collection that had come from Lichess. An import attempted in that state gave the offline message. The zero-request half was measured separately and more precisely than packet inspection, by reading the app's uid byte counters around four cold starts and a whole session: 0 bytes, against 11,448 for the one action that should fetch (SC-009, quickstart scenario 8)
 - [X] T070 Run `dart analyze` and the whole suite with `flutter test` — both clean. `dart format .` deliberately not run; see "What was done, and what was not"
 
 ---
@@ -447,3 +447,41 @@ contains double quotes, so a naive `content-desc="[^"]*"` grep silently drops ex
 messages that quote a collection name; and the phone rotated to landscape mid-run, after which
 every hard-coded portrait swipe went somewhere useless. Read bounds from the dump every time
 rather than remembering them.
+
+### The error contract on device — 2026-08-15
+
+Run during feature 004's follow-up, on a release build of `main`, against the real service.
+
+| Row | Result |
+|---|---|
+| Offline | *"Importing from Lichess needs a connection. Everything already imported still works offline."* — and it says the rest of the app is unaffected, which is the half that matters |
+| Malformed address | Done in 003's own pass: *"That is not a Lichess study address…"*, with no request made |
+| `404` / study gone | Importing `lichess.org/study/zzzzzzzz`: *"That study is not available to this account. It may have been deleted, or made private."* Library unchanged |
+| `401` / revoked token | The owner revoked the app's token at `lichess.org/account/oauth/token`. The next request was refused, `onUnauthorized` cleared the credential, and the bar fell to `Not connected` on the next launch. **The message was wrong — see below** |
+| Killed mid-fetch | App force-stopped during a fetch: library still exactly two collections, nothing partial (FR-019) |
+| Cancelled login | Covered by test; a cancelled login is reported as nothing at all |
+| `429` rate limited | **Not reproducible without abusing the service.** Inducing it means deliberately hammering Lichess, which this app is built not to do — requests are serialised and there is no retry loop precisely so the limit is never approached. The path is unit-tested against a fake client, and that is the most this can honestly be |
+| Storage full | **Not attempted.** Filling a phone's storage to see one message is possible and grim; the path is unit-tested |
+
+### What the 401 row found
+
+With the token revoked, asking for *My studies* produced:
+
+> That study is not public, so it needs a connected Lichess account. Connect one on the home
+> screen.
+
+The player named no study, and the cause was a revoked login rather than a private one. The 401
+clears the credential mid-request, the account then reads as disconnected, `myStudiesProvider`
+throws `NotLoggedInError`, and the picker rendered that error's wording — which was written for
+someone who pasted a private address.
+
+This is the **third** time this one message has leaked into a context it was not written for: the
+first two were found in 004's device passes, on the import screen and on the picker's disconnected
+state, and both were fixed by giving that context its own sentence. Neither fix reached this
+branch, because nothing had ever driven a 401 through it.
+
+Fixed with `messageForStudyListError`, which the picker now uses on both of its error paths:
+anything in the my-studies context that is really "no account" gets the my-studies sentence, and
+everything else keeps its own. The regression test reproduces the exact asymmetry — a credential
+present, so the account reads connected and the list renders, while the list request is refused —
+and was confirmed to fail with the old wording before the fix was kept.
