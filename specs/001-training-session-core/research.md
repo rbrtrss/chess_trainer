@@ -71,7 +71,7 @@ constitution's bar for justified complexity.
 **Consequence**: Conversion functions are needed in both directions. They are small (SAN is
 the node identity in both representations) and pay for themselves immediately: the solution
 side of this feature is authored as PGN and parsed with `PgnGame.parsePgn`, which is the
-same code path feature 004 will use for Lichess studies.
+same code path feature 003 will use for Lichess studies.
 
 ## D2. Where positions come from while walking a tree
 
@@ -103,14 +103,14 @@ ids and the tree is small.
 **Decision**: Each bundled position is a **PGN string** with a `[FEN]` header, variations,
 and `{}` comments, parsed at load with `PgnGame.parsePgn`.
 
-**Rationale**: This is the strongest reuse decision available. Feature 004 imports Lichess
+**Rationale**: This is the strongest reuse decision available. Feature 003 imports Lichess
 studies, which are PGN with exactly these constructs. Authoring the sample positions as PGN
 means the parse-and-convert path is built, exercised, and unit-tested in feature 001, and
-feature 004 becomes a fetch plus a chapter split rather than new parsing work. Comments in
+feature 003 becomes a fetch plus a chapter split rather than new parsing work. Comments in
 the PGN become the review annotations required by FR-022 at no extra cost.
 
 **Alternatives considered**: a bespoke JSON schema for positions — rejected; it would need
-its own parser, its own tests, and would be thrown away when feature 004 arrived.
+its own parser, its own tests, and would be thrown away when feature 003 arrived.
 
 ## D5. Preventing feedback leaks structurally
 

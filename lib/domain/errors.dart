@@ -1,7 +1,11 @@
 /// Errors raised by the domain layer.
 ///
-/// See `specs/001-training-session-core/contracts/domain-api.md`, "Error contract".
+/// See `specs/001-training-session-core/contracts/domain-api.md`, "Error
+/// contract", and `specs/003-position-import/contracts/` for the import and
+/// network errors added by feature 003.
 library;
+
+import 'package:chess_trainer/domain/library/import_outcome.dart';
 
 /// Thrown when a move is played that is not legal in the position it is played
 /// from.
@@ -54,19 +58,60 @@ class TreeDecodeError implements Exception {
   String toString() => 'TreeDecodeError: $message';
 }
 
-/// Thrown when a bundled PGN cannot be turned into a training position.
+/// Thrown when a PGN entry cannot be turned into a training position.
 ///
-/// Deliberately fatal at load time: a malformed sample position must never
-/// reach a session, where it would look like a bug in the training loop.
+/// Its two readers treat it differently, which is the point of [reason].
+/// Loading the *bundled* positions still lets it escape and fail the load: a
+/// malformed sample must never reach a session, where it would look like a bug
+/// in the training loop. An *import* catches it per entry and turns it into a
+/// [RejectedEntry], so one bad chapter costs the player that chapter and
+/// nothing else (FR-007).
 class PositionParseError implements Exception {
-  PositionParseError(this.message, {this.positionId});
+  PositionParseError(
+    this.message, {
+    this.positionId,
+    this.reason = RejectionReason.unparseable,
+  });
 
   final String message;
   final String? positionId;
 
+  /// Which kind of unusable this is, so the import report can group by it
+  /// rather than printing near-identical lines (003 research D10).
+  final RejectionReason reason;
+
   @override
   String toString() =>
       'PositionParseError${positionId == null ? '' : ' [$positionId]'}: $message';
+}
+
+/// Thrown when a whole import source cannot be read.
+///
+/// Distinct from [PositionParseError], which rejects one entry. This one means
+/// there is nothing to import at all — the file is a photo, a spreadsheet, or
+/// empty — and the player is told what was expected rather than shown a parser
+/// error (FR-006).
+class SourceUnreadableError implements Exception {
+  SourceUnreadableError(this.message);
+
+  final String message;
+
+  @override
+  String toString() => 'SourceUnreadableError: $message';
+}
+
+/// Thrown when an import source is past the stated caps.
+///
+/// The message **must name the limit** (003 research D16). A refusal that
+/// explains itself is the alternative to an app that appears to hang, which is
+/// the only other honest option for a source this large.
+class SourceTooLargeError implements Exception {
+  SourceTooLargeError(this.message);
+
+  final String message;
+
+  @override
+  String toString() => 'SourceTooLargeError: $message';
 }
 
 /// Thrown when a session is started while another is already unfinished.
@@ -100,4 +145,86 @@ class StorageWriteError implements Exception {
 
   @override
   String toString() => 'StorageWriteError: $operation failed ($cause)';
+}
+
+// ---------------------------------------------------------------------------
+// Feature 003: the network. Every one of these must produce a message naming
+// what happened and what the player can do (SC-011), and none of them may leave
+// a partial collection behind (FR-019).
+// ---------------------------------------------------------------------------
+
+/// The device has no usable connection, or the request timed out.
+///
+/// Importing needs one; nothing else in the app does (FR-016).
+class NoConnectionError implements Exception {
+  NoConnectionError([this.cause]);
+
+  final Object? cause;
+
+  @override
+  String toString() => 'NoConnectionError${cause == null ? '' : ': $cause'}';
+}
+
+/// A private study was asked for without a credential.
+class NotLoggedInError implements Exception {
+  @override
+  String toString() => 'NotLoggedInError';
+}
+
+/// The credential is expired or revoked.
+///
+/// **There is no refresh path, and there must never be one.** Lichess issues no
+/// refresh tokens, so renewal cannot work; the only honest response is to ask
+/// the player to log in again (FR-017, 003 research D5).
+class LoginExpiredError implements Exception {
+  @override
+  String toString() => 'LoginExpiredError';
+}
+
+/// The player dismissed the authorization page.
+///
+/// A normal outcome, not a failure, and reported as neither.
+class LoginCancelledError implements Exception {
+  @override
+  String toString() => 'LoginCancelledError';
+}
+
+/// Lichess is rate-limiting this app.
+///
+/// Its own guidance is to wait about a minute and reduce request frequency.
+/// The app does not retry on its own: an automatic backoff loop turns a
+/// one-minute wait into an app that appears to hang (FR-018, D6).
+class RateLimitedError implements Exception {
+  @override
+  String toString() => 'RateLimitedError';
+}
+
+/// The study does not exist, or is not visible to this account.
+class StudyNotAvailableError implements Exception {
+  StudyNotAvailableError(this.studyId);
+
+  final String studyId;
+
+  @override
+  String toString() => 'StudyNotAvailableError: $studyId';
+}
+
+/// What the player pasted is not a Lichess study address.
+class NotAStudyLinkError implements Exception {
+  NotAStudyLinkError(this.input);
+
+  final String input;
+
+  @override
+  String toString() => 'NotAStudyLinkError: $input';
+}
+
+/// Lichess answered with a server error, or with something unreadable.
+class LichessUnavailableError implements Exception {
+  LichessUnavailableError(this.detail);
+
+  final String detail;
+
+  @override
+  String toString() => 'LichessUnavailableError: $detail';
 }

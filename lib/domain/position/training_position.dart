@@ -53,6 +53,25 @@ class TrainingPosition {
 /// It is one importable type rather than five loose fields on [TrainingPosition]
 /// precisely so that "everything that must be hidden" is a thing you can point
 /// at, instead of a list somebody has to remember.
+///
+/// Feature 003 changed what this type *means*. Until imports existed, every
+/// string that could reach a screen was written by us and reviewed, so naming
+/// five fields was enough. Imported content carries text written by someone
+/// else, including headers we have never heard of, and a five-field allowlist
+/// silently drops them — safe for Principle I today, and wrong the first time
+/// somebody wants a sixth field shown at review, because the default flips back
+/// to allow-by-omission.
+///
+/// [headers] inverts that: **everything** the entry carried is captured, and
+/// withholding becomes a property of where this type can be reached from rather
+/// than a list somebody maintains. Nothing here is reachable from
+/// [TrainingProjection], which is why adding a field to *that* type remains the
+/// one thing this design forbids.
+///
+/// The first real study we tried proved the point — `[StudyName]` and
+/// `[ChapterName]` are what Lichess writes, and `[ChapterName]` is literally
+/// the "Chapter 3: Winning the Opposition" case the constitution names. Neither
+/// was in the five fields (003 research D11).
 @immutable
 class PositionMetadata {
   const PositionMetadata({
@@ -61,6 +80,7 @@ class PositionMetadata {
     this.themes = const IList.empty(),
     this.rating,
     this.source,
+    this.headers = const IMap.empty(),
   });
 
   static const PositionMetadata empty = PositionMetadata();
@@ -80,12 +100,21 @@ class PositionMetadata {
   /// Where the position came from.
   final String? source;
 
+  /// Every header the entry carried, verbatim, keyed by PGN tag name.
+  ///
+  /// Includes the tags the typed fields above are derived from, and every tag
+  /// this app has never heard of. Unlike the typed fields it keeps `?`, PGN's
+  /// "unknown": a review that shows `[Date "?"]` is being honest about what the
+  /// file said, whereas a training screen shows none of this at all.
+  final IMap<String, String> headers;
+
   bool get isEmpty =>
       title == null &&
       goal == null &&
       themes.isEmpty &&
       rating == null &&
-      source == null;
+      source == null &&
+      headers.isEmpty;
 
   @override
   bool operator ==(Object other) =>
@@ -95,10 +124,12 @@ class PositionMetadata {
           goal == other.goal &&
           themes == other.themes &&
           rating == other.rating &&
-          source == other.source;
+          source == other.source &&
+          headers == other.headers;
 
   @override
-  int get hashCode => Object.hash(title, goal, themes, rating, source);
+  int get hashCode =>
+      Object.hash(title, goal, themes, rating, source, headers);
 
   @override
   String toString() => 'PositionMetadata(${title ?? 'untitled'})';

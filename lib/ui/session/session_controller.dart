@@ -1,4 +1,3 @@
-import 'package:chess_trainer/data/bundled_position_source.dart';
 import 'package:chess_trainer/data/local/database.dart';
 import 'package:chess_trainer/data/local/drift_session_repository.dart';
 import 'package:chess_trainer/data/session_repository.dart';
@@ -12,13 +11,6 @@ import 'package:chess_trainer/domain/tree/variation_tree.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meta/meta.dart';
-
-/// The positions shipped with the app.
-final bundledPositionsProvider =
-    FutureProvider<IList<TrainingPosition>>((ref) async {
-  const source = BundledPositionSource();
-  return source.loadAll();
-});
 
 /// The database, opened once for the app's lifetime and closed with it.
 ///

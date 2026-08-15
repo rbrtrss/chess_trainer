@@ -4,13 +4,17 @@ import 'package:chess_trainer/domain/position/training_position.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/services.dart';
 
-/// The positions this feature trains on: a fixed set shipped inside the app
-/// (FR-029), read from the asset bundle and never from a network (FR-030).
+/// The sample positions shipped inside the app, read from the asset bundle.
 ///
-/// Content sourcing is deliberately out of scope here. When feature 004 adds
-/// Lichess studies it will produce [TrainingPosition]s through the same parser,
-/// and this class becomes one implementation of a repository interface rather
-/// than the only source.
+/// **No longer the app's content — its seed.** Feature 003 made the library the
+/// source of positions; this class is read once, on first run, to plant the
+/// samples as an ordinary collection (FR-033). After that they are renamable,
+/// deletable, and in every respect like something the player imported, and
+/// deleting them is permanent.
+///
+/// The three samples exist to prove the training loop, not to train on. A
+/// calculation trainer whose content cannot change is a demo, which is what
+/// feature 003 was for.
 class BundledPositionSource {
   const BundledPositionSource({this.bundle});
 

@@ -1,6 +1,7 @@
 import 'package:chess_trainer/data/session_repository.dart';
 import 'package:chess_trainer/domain/position/training_position.dart';
 import 'package:chess_trainer/domain/session/training_session.dart';
+import 'package:chess_trainer/ui/library/library_controller.dart';
 import 'package:chess_trainer/ui/session/session_controller.dart';
 import 'package:chess_trainer/ui/session/session_flow.dart';
 import 'package:chess_trainer/ui/session/session_setup_screen.dart';
@@ -36,7 +37,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          bundledPositionsProvider.overrideWith((ref) async => positions),
+          availablePositionsProvider.overrideWith((ref) async => positions),
           sessionRepositoryProvider.overrideWithValue(harness.repository),
         ],
         child: const MaterialApp(home: SessionFlow()),
@@ -199,7 +200,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            bundledPositionsProvider.overrideWith((ref) async => positions),
+            availablePositionsProvider.overrideWith((ref) async => positions),
             sessionRepositoryProvider.overrideWithValue(harness.repository),
           ],
           child: const MaterialApp(home: SessionFlow()),

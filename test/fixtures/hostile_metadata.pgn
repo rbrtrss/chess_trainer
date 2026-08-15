@@ -1,0 +1,28 @@
+[Event "SENTINEL-EVENT Mate in three"]
+[Site "SENTINEL-SITE https://lichess.org/study/aaaabbbb"]
+[Date "2026.08.14"]
+[White "SENTINEL-WHITE Morphy"]
+[Black "SENTINEL-BLACK Duke of Brunswick"]
+[Result "1-0"]
+[Variant "From Position"]
+[ECO "SENTINEL-ECO C41"]
+[Opening "SENTINEL-OPENING Philidor Defense"]
+[StudyName "SENTINEL-STUDYNAME Back-rank mates"]
+[ChapterName "SENTINEL-CHAPTERNAME Chapter 3: Winning the Opposition"]
+[ChapterURL "https://lichess.org/study/aaaabbbb/ccccdddd"]
+[Annotator "SENTINEL-ANNOTATOR somebody"]
+[Title "SENTINEL-TITLE Philidor's Legacy"]
+[Goal "SENTINEL-GOAL White to play and force mate"]
+[Themes "SENTINEL-THEME-smothered, SENTINEL-THEME-sacrifice"]
+[Rating "1500"]
+[Source "SENTINEL-SOURCE Classic study"]
+[SomeTagInventedToday "SENTINEL-UNKNOWNTAG"]
+[UTCDate "2026.08.14"]
+[UTCTime "07:31:39"]
+[SetUp "1"]
+[FEN "5rk1/5Npp/8/8/8/1Q6/6PP/6K1 w - - 0 1"]
+
+1. Nh6+ $3 {SENTINEL-COMMENT-ONE Double check, and the only move that works.}
+Kh8 {SENTINEL-COMMENT-TWO Forced.}
+2. Qg8+ $1 (2. Nf7+ {SENTINEL-COMMENT-VARIATION A draw by repetition.} Kg8 3. Nh6+ Kh8)
+2... Rxg8 3. Nf7# {SENTINEL-COMMENT-THREE Smothered.}

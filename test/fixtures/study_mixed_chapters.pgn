@@ -1,0 +1,192 @@
+[Event "Puzzles: Deschapelle - Labourdonnais, Paris, 1836"]
+[Date "2020.11.02"]
+[Result "*"]
+[Variant "Standard"]
+[ECO "?"]
+[Opening "?"]
+[StudyName "Puzzles"]
+[ChapterName "Deschapelle - Labourdonnais, Paris, 1836"]
+[ChapterURL "https://lichess.org/study/55NSdxBQ/VAG1eJpi"]
+[Annotator "https://lichess.org/@/thibault"]
+[FEN "1r4k1/1b2K1pp/7b/2pp3P/6NB/2Q2pp1/4p3/5r2 w - - 0 1"]
+[SetUp "1"]
+[UTCDate "2020.11.02"]
+[UTCTime "07:31:39"]
+
+1. Nxh6+ Kh8 (1... gxh6 2. Qh8+ Kxh8 3. Kf7 Rf8+ 4. Kxf8 e1=Q (4... f2) 5. Bf6#) 2. Nf7+ Kg8 3. Qxg7+ Kxg7 4. Bf6+ Kg8 5. Nh6# *
+
+
+[Event "Puzzles: Previous position maybe?"]
+[Date "2020.11.02"]
+[Result "*"]
+[Variant "Standard"]
+[ECO "?"]
+[Opening "?"]
+[StudyName "Puzzles"]
+[ChapterName "Previous position maybe?"]
+[ChapterURL "https://lichess.org/study/55NSdxBQ/FZJhfLJb"]
+[Annotator "https://lichess.org/@/thibault"]
+[FEN "1r4k1/1b2K1pp/7b/2pp3P/6NB/2Q1ppp1/8/5r2 b - - 0 1"]
+[SetUp "1"]
+[UTCDate "2020.11.02"]
+[UTCTime "07:34:40"]
+
+ *
+
+
+[Event "Puzzles: test_12"]
+[Date "2020.11.28"]
+[Result "*"]
+[Variant "Standard"]
+[ECO "?"]
+[Opening "?"]
+[StudyName "Puzzles"]
+[ChapterName "test_12"]
+[ChapterURL "https://lichess.org/study/55NSdxBQ/p9fIeEnN"]
+[Annotator "https://lichess.org/@/thibault"]
+[FEN "2kr3r/ppp2pp1/1b6/1P2p3/4P3/P2B2P1/2P2PP1/R4RK1 w - - 0 18"]
+[SetUp "1"]
+[UTCDate "2020.11.28"]
+[UTCTime "19:29:32"]
+
+18. Rfd1 Rh1+ 19. Kxh1 Bxf2 20. Be2 Rh8+ 21. Bh5 Rxh5# *
+
+
+[Event "Puzzles: test_13"]
+[Date "2020.11.28"]
+[Result "*"]
+[Variant "Standard"]
+[ECO "?"]
+[Opening "?"]
+[StudyName "Puzzles"]
+[ChapterName "test_13"]
+[ChapterURL "https://lichess.org/study/55NSdxBQ/YXVfx3MU"]
+[Annotator "https://lichess.org/@/thibault"]
+[FEN "1r4k1/1b2K1pp/7b/2pp3P/6NB/2Q1ppp1/8/5r2 b - - 0 1"]
+[SetUp "1"]
+[UTCDate "2020.11.28"]
+[UTCTime "19:34:40"]
+
+1... e2 2. Nxh6+ gxh6 *
+
+
+[Event "Puzzles: test_14"]
+[Date "2020.11.28"]
+[Result "*"]
+[Variant "Standard"]
+[ECO "?"]
+[Opening "?"]
+[StudyName "Puzzles"]
+[ChapterName "test_14"]
+[ChapterURL "https://lichess.org/study/55NSdxBQ/U6W4duF8"]
+[Annotator "https://lichess.org/@/thibault"]
+[FEN "5r1k/1Q3p2/5q1p/8/2P4p/1P4P1/P4P2/R4RK1 w - - 0 29"]
+[SetUp "1"]
+[UTCDate "2020.11.28"]
+[UTCTime "19:36:59"]
+
+29. g4 (29. gxh4 Qxh4) *
+
+
+[Event "Puzzles: Chapter 6"]
+[Date "2020.12.07"]
+[Result "*"]
+[Variant "Standard"]
+[ECO "?"]
+[Opening "?"]
+[StudyName "Puzzles"]
+[ChapterName "Chapter 6"]
+[ChapterURL "https://lichess.org/study/55NSdxBQ/JZMOv7ym"]
+[Annotator "https://lichess.org/@/thibault"]
+[FEN "3r4/8/2p2n2/7k/P1P4p/1P6/2K5/6R1 w - - 0 43"]
+[SetUp "1"]
+[UTCDate "2020.12.07"]
+[UTCTime "19:55:44"]
+
+43. Rh1 (43. Rf1) (43. a5) *
+
+
+[Event "Puzzles: Chapter 7"]
+[Date "2020.12.07"]
+[Result "*"]
+[Variant "Standard"]
+[ECO "?"]
+[Opening "?"]
+[StudyName "Puzzles"]
+[ChapterName "Chapter 7"]
+[ChapterURL "https://lichess.org/study/55NSdxBQ/NpCtitUO"]
+[Annotator "https://lichess.org/@/thibault"]
+[FEN "8/1N6/2p1rn2/7k/P1P4p/1P1K4/8/6R1 w - - 2 41"]
+[SetUp "1"]
+[UTCDate "2020.12.07"]
+[UTCTime "19:59:24"]
+
+41. Nd8 *
+
+
+[Event "Puzzles: Chapter 8"]
+[Date "2021.02.05"]
+[Result "*"]
+[Variant "Standard"]
+[ECO "A00"]
+[Opening "Sodium Attack"]
+[StudyName "Puzzles"]
+[ChapterName "Chapter 8"]
+[ChapterURL "https://lichess.org/study/55NSdxBQ/a2ZsJNR8"]
+[Annotator "https://lichess.org/@/thibault"]
+[UTCDate "2021.02.05"]
+[UTCTime "09:40:08"]
+
+1. Na3 *
+
+
+[Event "Puzzles: Chapter 9"]
+[Date "2021.05.30"]
+[Result "*"]
+[Variant "From Position"]
+[ECO "?"]
+[Opening "?"]
+[StudyName "Puzzles"]
+[ChapterName "Chapter 9"]
+[ChapterURL "https://lichess.org/study/55NSdxBQ/jhN8Srdt"]
+[Annotator "https://lichess.org/@/thibault"]
+[FEN "4r1k1/5p2/P7/8/1P6/6P1/2P5/2K5 w - - 1 37"]
+[SetUp "1"]
+[UTCDate "2021.05.30"]
+[UTCTime "11:36:01"]
+
+37. b5 Ra8 38. c4 Kg7 39. Kc2 Kf8 40. c5 Rc8 41. Kb3 Rxc5 *
+
+
+[Event "Puzzles: Chapter 10"]
+[Date "2024.10.16"]
+[Result "*"]
+[Variant "Standard"]
+[ECO "A43"]
+[Opening "Benoni Defense: Benoni Gambit Accepted"]
+[StudyName "Puzzles"]
+[ChapterName "Chapter 10"]
+[ChapterURL "https://lichess.org/study/55NSdxBQ/2bVKSQeg"]
+[Annotator "https://lichess.org/@/thibault"]
+[UTCDate "2024.10.16"]
+[UTCTime "06:21:33"]
+
+1. d4 c5 2. dxc5 *
+
+
+[Event "Puzzles: Chapter 11"]
+[Date "2024.10.16"]
+[Result "*"]
+[Variant "Standard"]
+[ECO "?"]
+[Opening "?"]
+[StudyName "Puzzles"]
+[ChapterName "Chapter 11"]
+[ChapterURL "https://lichess.org/study/55NSdxBQ/NuOiM183"]
+[Annotator "https://lichess.org/@/thibault"]
+[UTCDate "2024.10.16"]
+[UTCTime "06:21:44"]
+
+ *
+
+

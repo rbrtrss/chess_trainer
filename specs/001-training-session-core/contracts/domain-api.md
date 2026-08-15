@@ -180,7 +180,7 @@ TrainingPosition parseTrainingPosition(String pgn, {required String id});
 /// [initialPosition] so every node's legality is checked at construction.
 VariationTree fromPgnNode(PgnNode<PgnNodeData> node, Position initialPosition);
 
-/// Inverse of [fromPgnNode]. Needed for round-trip tests, and by feature 004.
+/// Inverse of [fromPgnNode]. Needed for round-trip tests, and by feature 003.
 PgnNode<PgnNodeData> toPgnNode(VariationTree tree);
 ```
 

@@ -54,7 +54,7 @@ layer" bar.
 2. A stored tree is self-describing. With the FEN in the header, a row can be replayed
    without knowing which bundled position it came from, which is what makes the
    "bundled positions changed under us" edge case survivable.
-3. It is the same format feature 004 ingests, so the app has one tree interchange format in
+3. It is the same format feature 003 ingests, so the app has one tree interchange format in
    both directions instead of two.
 4. It is legible in a database browser, which matters when diagnosing a report of lost work.
 

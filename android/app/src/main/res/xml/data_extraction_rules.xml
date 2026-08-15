@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Backups are off (FR-021, 003 research D4).
+
+  flutter_secure_storage's data is ordinary app storage as far as Android's
+  Auto Backup and device-to-device transfer are concerned, so without this the
+  Lichess access token can leave the device inside a Google backup — exactly the
+  movement FR-021 forbids.
+
+  The consequence, recorded rather than buried: the training database stops
+  being backed up too. Sessions still survive an app *update*, which is what
+  FR-040 asks for, but a player who factory-resets their phone loses their
+  history. Nobody asked for that, and nobody will notice until it matters.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+        <exclude domain="file" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+        <exclude domain="file" />
+    </device-transfer>
+</data-extraction-rules>

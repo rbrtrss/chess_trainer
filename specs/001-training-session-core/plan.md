@@ -18,7 +18,7 @@ The technical approach rests on four decisions from [research.md](./research.md)
   `PgnNode` at the boundary — needed because `PgnNode` is mutable and has no value
   equality, which defeats both FR-015 and the required tests.
 - Bundled positions authored as **PGN**, so the parser this feature builds is the one
-  feature 004 will reuse for Lichess studies.
+  feature 003 will reuse for Lichess studies.
 - A **`TrainingProjection`** type that carries no solution or metadata, making feedback
   leaks a compile error rather than a matter of discipline.
 - Illegal moves made **unreachable** rather than rejected, by feeding the board
@@ -105,7 +105,7 @@ lib/
 │       ├── training_session.dart    # state machine
 │       └── grade.dart
 ├── data/
-│   ├── pgn_position_parser.dart     # PGN -> TrainingPosition; reused by feature 004
+│   ├── pgn_position_parser.dart     # PGN -> TrainingPosition; reused by feature 003
 │   └── bundled_position_source.dart # loads assets/positions/*.pgn
 └── ui/
     ├── app.dart

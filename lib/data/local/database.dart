@@ -20,7 +20,20 @@ part 'database.g.dart';
 /// Drift exception outward.
 const String oneSessionInProgressIndex = 'one_session_in_progress';
 
-@DriftDatabase(tables: [Sessions, SessionPositions, Attempts, Grades])
+/// The `app_settings` key that records the bundled samples having been seeded.
+///
+/// Named here so the repository and the migration agree on it (003 D12).
+const String samplesSeededKey = 'samples_seeded';
+
+@DriftDatabase(tables: [
+  Sessions,
+  SessionPositions,
+  Attempts,
+  Grades,
+  Collections,
+  Positions,
+  AppSettings,
+])
 class AppDatabase extends _$AppDatabase {
   /// The database the app runs on: `<app documents>/chess_trainer.sqlite`.
   ///
@@ -38,7 +51,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forExecutor(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -46,6 +59,24 @@ class AppDatabase extends _$AppDatabase {
         // declared on `Sessions`, so the one-session-in-progress rule is part
         // of the schema rather than a statement someone has to remember.
         onCreate: (migrator) => migrator.createAll(),
+        onUpgrade: (migrator, from, to) async {
+          // v1 → v2: feature 003 adds the library. Nothing in v1 is altered,
+          // so a player's stored sessions cannot be damaged by this migration
+          // — which is the property `migration_test.dart` asserts, and the
+          // reason the new tables are additions rather than a restructuring.
+          //
+          // Seeding the bundled samples is deliberately **not** done here. It
+          // belongs to the repository, which runs it on both a fresh install
+          // and an upgrade, so both paths end in the same state rather than
+          // one of them quietly ending somewhere else.
+          if (from < 2) {
+            await migrator.createTable(collections);
+            await migrator.createTable(positions);
+            await migrator.createTable(appSettings);
+            await migrator.createIndex(collectionsByContent);
+            await migrator.createIndex(positionsByCollection);
+          }
+        },
         beforeOpen: (details) async {
           // Without this, SQLite accepts rows referring to sessions that are
           // not there, and `deleteEverything` would leave orphans behind.

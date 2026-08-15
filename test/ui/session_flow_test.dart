@@ -2,6 +2,7 @@ import 'package:chess_trainer/data/pgn_position_parser.dart';
 import 'package:chess_trainer/domain/position/training_position.dart';
 import 'package:chess_trainer/domain/session/training_session.dart';
 import 'package:chess_trainer/ui/review/review_screen.dart';
+import 'package:chess_trainer/ui/library/library_controller.dart';
 import 'package:chess_trainer/ui/session/session_controller.dart';
 import 'package:chess_trainer/ui/session/session_flow.dart';
 import 'package:chess_trainer/ui/session/session_setup_screen.dart';
@@ -29,6 +30,7 @@ void main() {
 [Goal "White to play and win"]
 [Themes "fork, pin"]
 [Rating "${1000 + i}"]
+[FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"]
 
 1. e4 e5 2. Nf3
 ''', id: 'position-$i'),
@@ -46,7 +48,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          bundledPositionsProvider.overrideWith((ref) async => positions),
+          availablePositionsProvider.overrideWith((ref) async => positions),
           // Storage runs in memory: the widgets are exercised against the real
           // repository over a database that lives for the length of the test.
           sessionRepositoryProvider

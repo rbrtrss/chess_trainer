@@ -9,10 +9,10 @@
 /// around in the history.
 library;
 
-import 'dart:convert';
 import 'dart:math';
 
 import 'package:chess_trainer/data/local/database.dart';
+import 'package:chess_trainer/data/local/metadata_json.dart';
 import 'package:chess_trainer/data/pgn_position_parser.dart';
 import 'package:chess_trainer/data/session_repository.dart';
 import 'package:chess_trainer/domain/attempt/attempt.dart';
@@ -439,35 +439,13 @@ class DriftSessionRepository implements SessionRepository {
     throw TreeDecodeError('unknown grade "$stored"');
   }
 
-  String _encodeMetadata(PositionMetadata metadata) => jsonEncode({
-        'title': metadata.title,
-        'goal': metadata.goal,
-        'themes': metadata.themes.unlock,
-        'rating': metadata.rating,
-        'source': metadata.source,
-      });
+  // Metadata encoding moved to `metadata_json.dart` in feature 003, so that the
+  // library's `positions` table and this table cannot drift apart — a session
+  // snapshots its positions from the library, and a disagreement here would
+  // show up as a review missing the notes it was played against.
+  String _encodeMetadata(PositionMetadata metadata) => encodeMetadata(metadata);
 
-  PositionMetadata _decodeMetadata(String json) {
-    final Object? decoded;
-    try {
-      decoded = jsonDecode(json);
-    } on Object catch (error) {
-      throw TreeDecodeError('stored metadata is not JSON: $error');
-    }
-    if (decoded is! Map<String, Object?>) {
-      throw TreeDecodeError('stored metadata is not an object');
-    }
-    final themes = decoded['themes'];
-    return PositionMetadata(
-      title: decoded['title'] as String?,
-      goal: decoded['goal'] as String?,
-      themes: themes is List
-          ? themes.whereType<String>().toIList()
-          : const IList<String>.empty(),
-      rating: decoded['rating'] as int?,
-      source: decoded['source'] as String?,
-    );
-  }
+  PositionMetadata _decodeMetadata(String json) => decodeMetadata(json);
 
   /// True when [error] is the partial unique index refusing a second live
   /// session, as opposed to any other write failure.

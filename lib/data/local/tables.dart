@@ -1,6 +1,8 @@
 /// The stored schema.
 ///
-/// Four tables, described in `specs/002-session-persistence/data-model.md`.
+/// Seven tables: four described in
+/// `specs/002-session-persistence/data-model.md`, and three added by feature
+/// 003 and described in `specs/003-position-import/data-model.md`.
 /// Nothing outside `lib/data/local/` refers to any of this: the rest of the app
 /// codes against `SessionRepository`, and no other file learns that SQLite
 /// exists (Constitution IV).
@@ -123,4 +125,88 @@ class Grades extends Table {
 
   @override
   Set<Column<Object>> get primaryKey => {sessionId, positionId};
+}
+
+// ---------------------------------------------------------------------------
+// Feature 003: the library. Content stops being three files in the asset
+// bundle and becomes something the player owns, imports, and deletes.
+// ---------------------------------------------------------------------------
+
+/// A named group of positions produced by one import.
+@DataClassName('CollectionRow')
+@TableIndex(name: 'collections_by_content', columns: {#contentHash})
+class Collections extends Table {
+  TextColumn get id => text()();
+
+  /// Player-supplied and deliberately **not** unique (FR-009).
+  TextColumn get name => text()();
+
+  /// `bundled` / `file` / `lichess` — see `CollectionOrigin`.
+  TextColumn get originKind => text()();
+
+  /// The file name, or the study id. Null for the bundled samples.
+  TextColumn get originRef => text().nullable()();
+
+  /// The study's name at the time it was fetched. Null otherwise.
+  TextColumn get originLabel => text().nullable()();
+
+  IntColumn get importedAt => integer()();
+
+  /// SHA-256 of the source text, for duplicate detection (003 research D13).
+  ///
+  /// It answers the question actually being asked — "have I already imported
+  /// *this*?" — rather than a proxy like the file name or the study id, and so
+  /// it catches the case that happens: the same study exported twice under two
+  /// different names.
+  TextColumn get contentHash => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// One trainable position belonging to one collection.
+///
+/// **Nothing in the training layer queries this table by collection.** A
+/// session is handed positions; it never learns which collection they came
+/// from, because that is provenance and provenance is evidence (FR-026).
+@DataClassName('PositionRow')
+@TableIndex(name: 'positions_by_collection', columns: {#collectionId})
+class Positions extends Table {
+  TextColumn get id => text()();
+
+  TextColumn get collectionId =>
+      text().references(Collections, #id, onDelete: KeyAction.cascade)();
+
+  /// Order within the collection, as the source had it.
+  IntColumn get ordinal => integer()();
+
+  /// Never null: an entry with no `[FEN]` is rejected at import rather than
+  /// stored with a guessed starting position (003 research D10).
+  TextColumn get initialFen => text()();
+
+  /// The whole solution tree, comments and NAGs included, as PGN (002 D2).
+  TextColumn get solutionPgn => text()();
+
+  /// The typed fields *and* the full header bag (003 D11).
+  TextColumn get metadataJson => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// Small facts about the installation that are not about a session.
+///
+/// One key so far: `samples_seeded`. It exists so that deleting the bundled
+/// sample collection is permanent (FR-033). Seeding "when the collection table
+/// is empty" would resurrect the samples for a player who had deliberately
+/// cleared everything — an app arguing with its user about what it should
+/// contain.
+@DataClassName('AppSettingRow')
+class AppSettings extends Table {
+  TextColumn get key => text()();
+
+  TextColumn get value => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {key};
 }

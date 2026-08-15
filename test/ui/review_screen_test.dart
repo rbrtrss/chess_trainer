@@ -21,6 +21,7 @@ void main() {
 [Themes "fork, deflection"]
 [Rating "1650"]
 [Source "A book"]
+[FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"]
 
 1. e4 {The author's note on the first move.} e5 2. Nf3 (2. Bc4 {A quieter try.})
 2... Nc6 3. Bb5

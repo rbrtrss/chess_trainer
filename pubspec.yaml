@@ -36,6 +36,44 @@ dependencies:
   # build scripts the package exists to retire (research, "A trap worth naming").
   drift_flutter: ^0.3.1
 
+  # ---------------------------------------------------------------------------
+  # Feature 003. Licences checked on pub.dev before adoption, as the
+  # constitution requires; every one is GPL-3.0 compatible.
+  # ---------------------------------------------------------------------------
+
+  # Picking a PGN through the Storage Access Framework, which grants access to
+  # the one file the player chose — so the app needs no storage permission at
+  # all. BSD-3-Clause, published by flutter.dev. Chosen over file_picker for its
+  # narrower surface (003 research D1).
+  file_selector: ^1.1.0
+
+  # The only HTTP client, and it is confined to lib/data/lichess/. Nothing else
+  # in lib/ may mention it; test/domain/layering_test.dart enforces that in both
+  # directions (003 research D2, D14). BSD-3-Clause.
+  http: ^1.6.0
+
+  # SHA-256, for the PKCE code challenge and for import duplicate detection
+  # (003 research D3, D13). BSD-3-Clause.
+  crypto: ^3.0.7
+
+  # Where the Lichess access token lives (Constitution, Secrets). BSD-3-Clause.
+  # Paired with android:allowBackup="false" so the token cannot leave the device
+  # inside a Google backup (003 research D4).
+  #
+  # Pinned below 11.x, which research picked as the latest: 11.0.0 sets
+  # `compileSdk = 37`, and the Android SDK manager publishes no plain
+  # `platforms;android-37` — only minor-versioned `android-37.0`, `37.1` and so
+  # on — so Gradle cannot resolve the platform and the build fails on the
+  # plugin, not on us. 10.3.1 uses compileSdk 36 and builds. Same API surface;
+  # revisit when a plain android-37 platform exists or the plugin addresses a
+  # minor version.
+  flutter_secure_storage: ^10.3.1
+
+  # A Chrome Custom Tab for the OAuth authorization page, and the Android
+  # activity that catches the redirect. Not an embedded WebView: the player must
+  # see a real lichess.org address bar. MIT (003 research D3).
+  flutter_web_auth_2: ^5.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

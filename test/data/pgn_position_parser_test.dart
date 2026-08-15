@@ -1,9 +1,20 @@
 import 'package:chess_trainer/data/pgn_position_parser.dart';
 import 'package:chess_trainer/domain/errors.dart';
+import 'package:chess_trainer/domain/library/import_outcome.dart';
 import 'package:chess_trainer/domain/tree/move_path.dart';
 import 'package:chess_trainer/domain/tree/variation_tree.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+/// The standard starting position, spelled out.
+///
+/// Feature 003 made `[FEN]` mandatory (003 research D10), so the fixtures below
+/// that used to rely on the old fallback now say where they start. Without this
+/// they would still throw `PositionParseError` and still pass — for the wrong
+/// reason, testing the missing-header rule instead of the legality rule they
+/// were written for.
+const _initialFen =
+    '[FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"]\n\n';
 
 const _nestedVariations = '''
 [Title "A nested fixture"]
@@ -23,7 +34,8 @@ void main() {
 
     test('an illegal mainline move fails the parse', () {
       expect(
-        () => parseTrainingPosition('1. e4 e5 2. Ke2 Qh4 3. Kd8', id: 'bad'),
+        () => parseTrainingPosition('$_initialFen'
+            '1. e4 e5 2. Ke2 Qh4 3. Kd8', id: 'bad'),
         throwsA(isA<PositionParseError>()),
       );
     });
@@ -34,14 +46,16 @@ void main() {
       // dartchess tokeniser before it ever reaches here, so it would not
       // exercise the legality check.
       expect(
-        () => parseTrainingPosition('1. e4 (1. e5) 1... e5', id: 'bad-variation'),
+        () => parseTrainingPosition('$_initialFen'
+            '1. e4 (1. e5) 1... e5', id: 'bad-variation'),
         throwsA(isA<PositionParseError>()),
       );
     });
 
     test('duplicate alternatives from one position are rejected', () {
       expect(
-        () => parseTrainingPosition('1. e4 (1. e4) 1... e5', id: 'duplicate'),
+        () => parseTrainingPosition('$_initialFen'
+            '1. e4 (1. e4) 1... e5', id: 'duplicate'),
         throwsA(isA<PositionParseError>()),
       );
     });
@@ -90,7 +104,7 @@ void main() {
     });
 
     test('a user-shaped tree carries no comments or NAGs', () {
-      final position = parseTrainingPosition('1. e4 e5', id: 'plain');
+      final position = parseTrainingPosition('$_initialFen' '1. e4 e5', id: 'plain');
       for (final node in position.solution.primaryLine) {
         expect(node.comments, isEmpty);
         expect(node.nags, isEmpty);
@@ -107,15 +121,28 @@ void main() {
       expect(position.sideToMove, Side.white);
     });
 
-    test('a missing FEN header falls back to the standard position', () {
-      final position = parseTrainingPosition('1. e4', id: 'standard');
-      expect(position.initialPosition, Chess.initial);
+    test('a missing FEN header is rejected, not filled in (FR-003)', () {
+      // Until feature 003 this fell back to the standard initial position.
+      // Against arbitrary imports that silently turned a game record into a
+      // "position" starting at move 1 — untrainable, and ungradeable.
+      expect(
+        () => parseTrainingPosition('1. e4', id: 'standard'),
+        throwsA(isA<PositionParseError>().having(
+          (error) => error.reason,
+          'reason',
+          RejectionReason.noStartingPosition,
+        )),
+      );
     });
 
     test('an invalid FEN header fails the parse', () {
       expect(
         () => parseTrainingPosition('[FEN "not a fen"]\n\n1. e4', id: 'bad-fen'),
-        throwsA(isA<PositionParseError>()),
+        throwsA(isA<PositionParseError>().having(
+          (error) => error.reason,
+          'reason',
+          RejectionReason.noStartingPosition,
+        )),
       );
     });
 
@@ -126,6 +153,7 @@ void main() {
 [Themes "fork, pin"]
 [Rating "1750"]
 [Source "Somewhere"]
+[FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"]
 
 1. e4
 ''';
@@ -138,20 +166,102 @@ void main() {
       expect(metadata.source, 'Somewhere');
     });
 
-    test('PGN "unknown" markers are treated as absent metadata', () {
-      const pgn = '[Event "?"]\n[Site "?"]\n\n1. e4';
-      final metadata = parseTrainingPosition(pgn, id: 'unknown').metadata;
+    test('PGN "unknown" markers are treated as absent typed metadata', () {
+      final metadata =
+          parseTrainingPosition('[Event "?"]\n[Site "?"]\n$_initialFen 1. e4',
+                  id: 'unknown')
+              .metadata;
 
       expect(metadata.title, isNull);
       expect(metadata.source, isNull);
-      expect(metadata.isEmpty, isTrue);
+      // The bag keeps them, because at review "[Event "?"]" is the file being
+      // honest about what it does not know. `isEmpty` is therefore false: the
+      // entry carried headers, even if none of them said anything.
+      expect(metadata.headers['Event'], '?');
+      expect(metadata.isEmpty, isFalse);
     });
 
     test('a PGN with no moves fails the parse', () {
       expect(
-        () => parseTrainingPosition('[Title "Empty"]\n\n*', id: 'empty'),
-        throwsA(isA<PositionParseError>()),
+        () => parseTrainingPosition('[Title "Empty"]\n$_initialFen*', id: 'empty'),
+        throwsA(isA<PositionParseError>().having(
+          (error) => error.reason,
+          'reason',
+          RejectionReason.noMoves,
+        )),
       );
+    });
+  });
+
+  group('the header bag (FR-024, FR-025, 003 research D11)', () {
+    test('every header is captured, including ones nobody anticipated', () {
+      const pgn = '''
+[Event "World Blitz 2025 Open"]
+[StudyName "A study"]
+[ChapterName "Chapter 3: Winning the Opposition"]
+[Annotator "https://lichess.org/@/Lichess"]
+[WhiteFideId "939935"]
+[SomeTagInventedToday "and its value"]
+[FEN "3k4/8/3K4/3P4/8/8/8/8 w - - 0 1"]
+
+1. Kc6
+''';
+      final metadata = parseTrainingPosition(pgn, id: 'bag').metadata;
+
+      // The point of the bag: a header this app has never heard of is captured
+      // and therefore withheld, rather than dropped on the floor and lost to
+      // review. The rule cannot be a list of field names, because the list is
+      // not ours to write.
+      expect(metadata.headers['SomeTagInventedToday'], 'and its value');
+      expect(metadata.headers['WhiteFideId'], '939935');
+      expect(metadata.headers['Annotator'], contains('Lichess'));
+      expect(metadata.headers['StudyName'], 'A study');
+      expect(metadata.headers['FEN'], isNotNull);
+    });
+
+    test('ChapterName is preferred as the title — it is the leak', () {
+      const pgn = '''
+[Event "Some event"]
+[ChapterName "Chapter 3: Winning the Opposition"]
+[FEN "3k4/8/3K4/3P4/8/8/8/8 w - - 0 1"]
+
+1. Kc6
+''';
+      expect(parseTrainingPosition(pgn, id: 'chapter').metadata.title,
+          'Chapter 3: Winning the Opposition');
+    });
+  });
+
+  group('variants (FR-006)', () {
+    test('a non-standard variant is rejected', () {
+      const pgn = '''
+[Variant "Crazyhouse"]
+[FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"]
+
+1. e4
+''';
+      expect(
+        () => parseTrainingPosition(pgn, id: 'zh'),
+        throwsA(isA<PositionParseError>().having(
+          (error) => error.reason,
+          'reason',
+          RejectionReason.unsupportedVariant,
+        )),
+      );
+    });
+
+    test('"From Position" is standard chess, and must not be rejected', () {
+      // This is what Lichess writes for a chapter set up from a FEN — which is
+      // to say, for every chapter this app can actually use. Rejecting it would
+      // reject an entire real study.
+      const pgn = '''
+[Variant "From Position"]
+[FEN "3k4/8/3K4/3P4/8/8/8/8 w - - 0 1"]
+
+1. Kc6
+''';
+      expect(parseTrainingPosition(pgn, id: 'from-position').sideToMove,
+          Side.white);
     });
   });
 

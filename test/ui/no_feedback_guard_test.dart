@@ -4,6 +4,7 @@ import 'package:chess_trainer/data/pgn_position_parser.dart';
 import 'package:chessground/chessground.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'editor_harness.dart';
@@ -172,6 +173,112 @@ void main() {
   });
 
   _resumptionGuards();
+  _importGuards();
+}
+
+/// Feature 003's guards: imported content must reach the training screen with
+/// nothing of itself attached (FR-024 – FR-027, SC-003, SC-004).
+///
+/// Until imports existed, every string that could reach a screen was written by
+/// us and reviewed. Now it is arbitrary text from a stranger's study, including
+/// headers nobody anticipated — so the fixture fills *every* text-carrying
+/// field with a sentinel and the test looks for all of them at once.
+void _importGuards() {
+  final hostile = parseTrainingPosition(
+    File('test/fixtures/hostile_metadata.pgn').readAsStringSync(),
+    id: 'imported-hostile',
+  );
+
+  /// Every sentinel the fixture plants, read back out of the file itself.
+  ///
+  /// Derived rather than listed, so that adding a field to the fixture extends
+  /// the test automatically. A guard whose fixture and assertions can drift
+  /// apart is a guard that quietly stops covering the field somebody just
+  /// added.
+  final sentinels = RegExp(r'SENTINEL-[A-Z-]+(?:-[A-Za-z]+)?')
+      .allMatches(File('test/fixtures/hostile_metadata.pgn').readAsStringSync())
+      .map((match) => match.group(0)!)
+      .toSet();
+
+  group('an imported position leaks nothing it arrived with', () {
+    test('the fixture really does carry sentinels in every field', () {
+      // If this fails, the test below is proving nothing.
+      expect(sentinels.length, greaterThanOrEqualTo(15));
+      expect(hostile.metadata.headers['SomeTagInventedToday'],
+          'SENTINEL-UNKNOWNTAG');
+    });
+
+    testWidgets('none of them appears anywhere on the training screen',
+        (tester) async {
+      await pumpTrainingScreen(tester, positions: IList([hostile]));
+      await playSanOnBoard(tester, 'Nh6+');
+
+      for (final sentinel in sentinels) {
+        expect(find.textContaining(sentinel, findRichText: true), findsNothing,
+            reason: '"$sentinel" reached the training screen. Every header, '
+                'comment and annotation an imported entry carries is evidence '
+                'about the position (FR-024)');
+      }
+    });
+
+    testWidgets('nor in any semantics label, tooltip or accessibility node',
+        (tester) async {
+      final handle = tester.ensureSemantics();
+      await pumpTrainingScreen(tester, positions: IList([hostile]));
+      await playSanOnBoard(tester, 'Nh6+');
+
+      final labels = <String>[];
+      void collect(SemanticsNode node) {
+        labels
+          ..add(node.label)
+          ..add(node.tooltip)
+          ..add(node.value)
+          ..add(node.hint);
+        node.visitChildren((child) {
+          collect(child);
+          return true;
+        });
+      }
+
+      collect(tester.binding.rootElement!
+          .findRenderObject()!
+          .debugSemantics!);
+
+      for (final sentinel in sentinels) {
+        expect(labels.where((label) => label.contains(sentinel)), isEmpty,
+            reason: '"$sentinel" is readable by a screen reader. A leak that '
+                'only a blind player hears is still a leak');
+      }
+      handle.dispose();
+    });
+
+    testWidgets('an imported position renders like a bundled one (SC-004)',
+        (tester) async {
+      // Same starting position, same move, different provenance. If the two
+      // screens differ, something about *where the position came from* is
+      // being drawn.
+      final bundled = parseTrainingPosition('''
+[FEN "5rk1/5Npp/8/8/8/1Q6/6PP/6K1 w - - 0 1"]
+
+1. Nh6+ Kh8 2. Qg8+ Rxg8 3. Nf7#
+''', id: 'bundled-equivalent');
+
+      await pumpTrainingScreen(tester, positions: IList([bundled]));
+      await playSanOnBoard(tester, 'Nh6+');
+      final bundledRender = renderSnapshot(tester);
+      final bundledBoard = boardSnapshot(tester);
+
+      await pumpTrainingScreen(tester, positions: IList([hostile]));
+      await playSanOnBoard(tester, 'Nh6+');
+      final importedRender = renderSnapshot(tester);
+      final importedBoard = boardSnapshot(tester);
+
+      expect(importedRender, bundledRender,
+          reason: 'the training screen varied with where the position came '
+              'from');
+      expect(importedBoard, bundledBoard);
+    });
+  });
 }
 
 /// The distinct move rows in a snapshot.
@@ -209,6 +316,7 @@ void _resumptionGuards() {
 [Goal "White to play and win"]
 [Themes "fork, pin"]
 [Rating "${1200 + i}"]
+[FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"]
 
 1. d4 d5 2. c4
 ''', id: 'resumable-$i'),

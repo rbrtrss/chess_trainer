@@ -1,7 +1,11 @@
 import 'package:chess_trainer/data/session_repository.dart';
 import 'package:chess_trainer/domain/errors.dart';
+import 'package:chess_trainer/domain/library/collection.dart';
 import 'package:chess_trainer/domain/position/training_position.dart';
 import 'package:chess_trainer/ui/history/history_screen.dart';
+import 'package:chess_trainer/ui/library/collection_list_screen.dart';
+import 'package:chess_trainer/ui/library/import_screen.dart';
+import 'package:chess_trainer/ui/library/library_controller.dart';
 import 'package:chess_trainer/ui/session/resume_prompt.dart';
 import 'package:chess_trainer/ui/session/session_controller.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
@@ -71,7 +75,7 @@ class _SessionSetupScreenState extends ConsumerState<SessionSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final positions = ref.watch(bundledPositionsProvider);
+    final positions = ref.watch(availablePositionsProvider);
     final resumable = ref.watch(resumeCandidateProvider);
 
     return Scaffold(
@@ -81,6 +85,26 @@ class _SessionSetupScreenState extends ConsumerState<SessionSetupScreen> {
           // Only ever reachable from setup. The training screen gains no new
           // affordance, which is the cheapest way to keep history away from a
           // player who is still calculating (FR-019).
+          IconButton(
+            key: const Key('open-import'),
+            icon: const Icon(Icons.library_add),
+            tooltip: 'Import positions',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (context) => const ImportScreen(),
+              ),
+            ),
+          ),
+          IconButton(
+            key: const Key('open-library'),
+            icon: const Icon(Icons.folder_outlined),
+            tooltip: 'Positions',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (context) => const CollectionListScreen(),
+              ),
+            ),
+          ),
           IconButton(
             key: const Key('open-history'),
             icon: const Icon(Icons.history),
@@ -99,10 +123,15 @@ class _SessionSetupScreenState extends ConsumerState<SessionSetupScreen> {
           error: (error, _) => Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Text('Could not load the bundled positions.\n\n$error'),
+              child: Text('Could not load your positions.\n\n$error'),
             ),
           ),
           data: (available) {
+            // An empty library is a normal state now that the samples are
+            // deletable (FR-039). It gets a way forward rather than a broken
+            // setup form with a zero-length slider.
+            if (available.isEmpty) return const _EmptyLibrary();
+
             final maximum = available.length;
             final length = _length > maximum ? maximum : _length;
 
@@ -110,6 +139,10 @@ class _SessionSetupScreenState extends ConsumerState<SessionSetupScreen> {
             // without the prompt; `SessionFlow` holds the first frame back
             // until it resolves, so this is only reached if it is slow.
             final stored = resumable.value;
+
+            final collections = ref.watch(collectionsProvider).value ??
+                const IList<Collection>.empty();
+            final chosen = ref.watch(chosenCollectionProvider).value;
 
             return SingleChildScrollView(
               padding: const EdgeInsets.all(24),
@@ -133,6 +166,52 @@ class _SessionSetupScreenState extends ConsumerState<SessionSetupScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 32),
+                  // Which collection this session draws from (FR-029). Shown
+                  // here and on no training screen: a collection called
+                  // "Back-rank mates" is evidence exactly as a chapter title
+                  // is (FR-026).
+                  if (collections.length > 1)
+                    DropdownButtonFormField<String>(
+                      key: const Key('collection-chooser'),
+                      initialValue: chosen?.id,
+                      decoration: const InputDecoration(
+                        labelText: 'Positions from',
+                      ),
+                      items: [
+                        for (final collection in collections)
+                          DropdownMenuItem<String>(
+                            key: Key('collection-option-${collection.id}'),
+                            value: collection.id,
+                            child: Text(
+                              '${collection.name} '
+                              '(${collection.positionCount})',
+                            ),
+                          ),
+                      ],
+                      onChanged: (id) {
+                        ref
+                            .read(selectedCollectionProvider.notifier)
+                            .choose(id);
+                        setState(() {});
+                      },
+                    )
+                  else if (chosen != null)
+                    Text('Positions from ${chosen.name}',
+                        key: const Key('collection-name-label'),
+                        textAlign: TextAlign.center),
+                  const SizedBox(height: 16),
+                  // A collection with fewer positions than asked for runs
+                  // shorter rather than repeating one (FR-031): seeing the
+                  // same position twice in a session would be its own kind of
+                  // hint.
+                  if (_length > maximum)
+                    Text(
+                      'This collection has $maximum '
+                      '${maximum == 1 ? 'position' : 'positions'}, so the '
+                      'session will be that long.',
+                      key: const Key('short-collection-notice'),
+                      textAlign: TextAlign.center,
+                    ),
                   Text('Positions: $length',
                       key: const Key('session-length'),
                       textAlign: TextAlign.center),
@@ -160,6 +239,50 @@ class _SessionSetupScreenState extends ConsumerState<SessionSetupScreen> {
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+/// What the setup screen shows when there is nothing to train (FR-039).
+///
+/// Reachable in one way only: the player deleted every collection, including
+/// the samples. That is allowed, so it needs an answer better than an empty
+/// list or an error.
+class _EmptyLibrary extends StatelessWidget {
+  const _EmptyLibrary();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      key: const Key('empty-library'),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'There are no positions to train.',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Import a PGN file — a study exported from Lichess, or any file '
+              'of positions.',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            FilledButton(
+              key: const Key('import-from-empty'),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) => const ImportScreen(),
+                ),
+              ),
+              child: const Text('Import positions'),
+            ),
+          ],
         ),
       ),
     );

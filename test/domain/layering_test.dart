@@ -70,6 +70,54 @@ void main() {
     }
   });
 
+  test('the training layer reads no content provenance (003 FR-026, FR-027)',
+      () {
+    // Feature 002's rule covered grades. Feature 003 introduced a second class
+    // of evidence with exactly the same shape: where a position came from.
+    // A collection called "Back-rank mates", a file called `mate-in-3.pgn`, a
+    // study titled "Winning the Opposition" — each tells the player the answer,
+    // and each is a string the app now holds while a player is calculating.
+    //
+    // The training screen is handed a `TrainingProjection` and cannot reach any
+    // of it. This rule exists so that stays true.
+    final trainingFiles = Directory('lib/ui/training')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.dart'));
+
+    expect(trainingFiles, isNotEmpty);
+
+    for (final file in trainingFiles) {
+      final source = file.readAsStringSync();
+      for (final forbidden in const [
+        'Collection',
+        'CollectionOrigin',
+        'CollectionRepository',
+        'BundledOrigin',
+        'FileOrigin',
+        'LichessOrigin',
+        'PositionMetadata',
+        'ImportOutcome',
+        'RejectedEntry',
+        'positionsIn',
+        'listCollections',
+        '.headers',
+        'metadata',
+      ]) {
+        expect(source, isNot(contains(forbidden)),
+            reason: '${file.path} reads $forbidden — the training screen must '
+                'show nothing about where the position came from, because a '
+                'collection name is evidence exactly as a chapter title is '
+                '(FR-026)');
+      }
+
+      expect(source, isNot(contains('data/collection_repository.dart')),
+          reason: '${file.path} imports the library surface');
+      expect(source, isNot(contains('domain/library/')),
+          reason: '${file.path} imports the library types');
+    }
+  });
+
   test('the training layer reads no grade or history data (FR-019)', () {
     // Persistence stored grades for the first time, so the ingredients for
     // "last seen 3 days ago, graded Hard" now exist even though nothing
@@ -115,13 +163,21 @@ void main() {
     }
   });
 
-  test('nothing in the app opens a network connection (FR-030, Principle II)',
-      () {
-    // Generated database code is included on purpose. `lib/` now contains
+  test('the network lives in one directory and nowhere else (003 D14)', () {
+    // **This rule was narrowed by feature 003, and the narrowing is a real
+    // loss.** Until then the release build declared no INTERNET permission and
+    // was therefore *incapable* of reaching the network — a guarantee the
+    // operating system enforced. Importing from Lichess needs that permission,
+    // so the guarantee is gone and cannot be recovered.
+    //
+    // What replaces it is this rule plus `no_network_during_training_test.dart`:
+    // networking may exist in exactly one directory, and the training flow is
+    // proven not to touch it. That is weaker, deliberately, and it must not be
+    // weakened further to make something else pass.
+    //
+    // Generated database code is included on purpose. `lib/` contains
     // `*.g.dart` files nobody wrote by hand, and a rule that quietly skipped
     // them would stop covering the layer most likely to reach for a socket.
-    // Drift's output imports neither `dart:io` nor an HTTP client, so nothing
-    // needs narrowing — checked here rather than assumed.
     final libFiles = Directory('lib')
         .listSync(recursive: true)
         .whereType<File>()
@@ -134,7 +190,11 @@ void main() {
           'is missing, so this rule is not covering it',
     );
 
+    const networkDirectory = 'lib/data/lichess/';
+
     for (final file in libFiles) {
+      if (file.path.startsWith(networkDirectory)) continue;
+
       final source = file.readAsStringSync();
       for (final networking in const [
         'package:http/',
@@ -144,9 +204,47 @@ void main() {
         'Socket(',
       ]) {
         expect(source, isNot(contains(networking)),
-            reason: '${file.path} contains $networking — this feature is '
-                'entirely offline and has no sync path');
+            reason: '${file.path} contains $networking. Networking belongs in '
+                '$networkDirectory and nowhere else — everything outside it '
+                'must work with the device offline (FR-016)');
       }
     }
+  });
+
+  test('only the connection provider reaches the network directory', () {
+    // The other half of the confinement. `lib/data/lichess/` may use an HTTP
+    // client; the question is who may reach *it*.
+    //
+    // The domain layer: never. It is pure Dart and has no business knowing
+    // Lichess exists.
+    //
+    // The UI: exactly one file, `connection_controller.dart`, which builds the
+    // providers — the same arrangement `session_controller.dart` has with the
+    // Drift repository, and for the same reason: this project keeps providers
+    // in `lib/ui/`, so something there has to name an implementation. Every
+    // screen goes through those providers, so no screen learns that Lichess is
+    // reached over a network at all.
+    const provider = 'lib/ui/library/connection_controller.dart';
+
+    for (final file in Directory('lib/domain')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.dart'))) {
+      expect(file.readAsStringSync(), isNot(contains('data/lichess/')),
+          reason: '${file.path} reaches the network from the domain layer');
+    }
+
+    final offenders = Directory('lib/ui')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.dart'))
+        .where((file) => file.path != provider)
+        .where((file) => file.readAsStringSync().contains('data/lichess/'))
+        .map((file) => file.path)
+        .toList();
+
+    expect(offenders, isEmpty,
+        reason: 'these screens import the Lichess client directly instead of '
+            'going through $provider (Principle II)');
   });
 }

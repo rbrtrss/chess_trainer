@@ -1,13 +1,27 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- No android.permission.INTERNET is declared, deliberately: this feature
-         must function with no network connection (FR-030), and the surest way to
-         guarantee that is for the release build to be incapable of it. The debug
-         manifest keeps the permission because the Flutter tool needs it to attach
-         over adb; the shipped app does not have it. -->
+    <!-- Feature 003 added this permission, and doing so gave up something real.
+         Until then the release build declared no INTERNET permission and was
+         therefore *incapable* of reaching the network — a guarantee the
+         operating system enforced, which feature 002's plan relied on. Importing
+         studies from Lichess needs the permission, so that guarantee is gone and
+         cannot be recovered.
+
+         What replaces it is weaker and deliberate (003 research D14):
+           - networking exists only in lib/data/lichess/, enforced by
+             test/domain/layering_test.dart in both directions;
+           - test/ui/no_network_during_training_test.dart drives the whole
+             training flow against an API that fails the test if touched.
+         A tested claim instead of an enforced one. Do not weaken either test to
+         make something else pass. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:label="Chess Trainer"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="false"
+        android:allowBackup="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -30,6 +44,21 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- The OAuth redirect lands here (003 research D3). The scheme must
+             match `lichessCallbackScheme` in lib/data/lichess/lichess_auth.dart
+             exactly: if the two disagree, login opens Lichess and then hangs on
+             the way back with no error to explain it. -->
+        <activity
+            android:name="com.linusu.flutter_web_auth_2.CallbackActivity"
+            android:exported="true">
+            <intent-filter android:label="flutter_web_auth_2">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="org.chesstrainer"/>
+            </intent-filter>
+        </activity>
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

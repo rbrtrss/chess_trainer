@@ -1,0 +1,127 @@
+[Event "Rated game"]
+[Site "https://lichess.org/iGfmx0xf"]
+[Date "2016.08.15"]
+[White "opperwezen"]
+[Black "JannLee"]
+[Result "1-0"]
+[WhiteElo "2805"]
+[BlackElo "2879"]
+[TimeControl "60+0"]
+[Termination "Time forfeit"]
+[Variant "Crazyhouse"]
+[ECO "A01"]
+[Opening "Nimzo-Larsen Attack: Modern Variation"]
+[StudyName "Sunsetter"]
+[ChapterName "IM opperwezen vs LM JannLee"]
+[ChapterURL "https://lichess.org/study/1wzY0YmD/oOEEUJjV"]
+[Annotator "https://lichess.org/@/thibault"]
+[FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/ w KQkq - 0 1"]
+[SetUp "1"]
+
+1. b3 e5 2. Bb2 Nc6 3. e3 d5 4. Bb5 Bd6 5. Nf3 f6 6. c4 dxc4 7. Bxc4 Nge7 8. Nc3 P@e6 9. Ne4 O-O 10. h4 Nf5 11. Nfg5 fxg5 12. hxg5 Na5 13. Qh5 Nxc4 14. Qxh7+ Kf7 15. g6+ Ke7 16. P@f6+ Kd7 17. fxg7 N@d3+ 18. Kf1 Ng3+ 19. Nxg3 Rxf2+ 20. Kg1 B@g8 21. N@f8+ Kc6 22. Qxg8 Bxf8 23. B@e4+ Kb6 24. Bxd3 Qxd3 25. bxc4 Rxg2+ 26. Kxg2 P@f3+ 27. Kh2 N@g4+ 28. Kh3 Nf2+ 29. Kh4 B@e7+ 30. P@g5 Qxg6 31. N@a4+ Ka6 32. P@b5+ Ka5 33. N@b3+ Kxa4 34. R@a5+ Kb4 35. Bc3+ Kxc4 36. Ra4+ P@b4 37. d3+ Nxd3 38. Rxb4+ Bxb4 39. Nd2+ Kd5 40. P@e4+ Kd6 41. Qxf8+ P@e7 42. Nc4+ Kd7 43. Nxe5+ 1-0
+
+
+[Event "Rated Crazyhouse game"]
+[Site "https://lichess.org/j2VPkGj6"]
+[Date "2016.08.14"]
+[Round "-"]
+[White "JannLee"]
+[Black "mastertan"]
+[Result "1-0"]
+[WhiteElo "2847"]
+[WhiteTitle "LM"]
+[BlackElo "2707"]
+[TimeControl "60+0"]
+[Termination "Normal"]
+[Variant "Crazyhouse"]
+[ECO "B00"]
+[Opening "Nimzowitsch Defense"]
+[StudyName "Sunsetter"]
+[ChapterName "LM JannLee vs mastertan"]
+[ChapterURL "https://lichess.org/study/1wzY0YmD/zfviBkDO"]
+[Annotator "https://lichess.org/@/thibault"]
+[FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/ w KQkq - 0 1"]
+[SetUp "1"]
+
+1. e4 Nc6 2. Nc3 Nf6 3. d4 d6 4. Bb5 a6 5. Ba4 b5 6. Nxb5 axb5 7. Bxb5 N@a7 8. Ba4 e6 9. d5 exd5 10. exd5 Qe7+ 11. P@e3 P@d7 12. dxc6 Nxc6 (12... dxc6 13. N@g5 (13. P@g5)) 13. Bxc6 dxc6 14. N@d4 P@b7 15. Ngf3 B@h5 16. O-O c5 17. Nb3 Bcg4 18. P@e2 Qd7 19. N@g3 Be7 20. Nxh5 Bxh5 21. B@h3 N@g4 22. Nxc5 dxc5 23. Qxd7+ Nxd7 24. Q@f5 N@f6 25. P@e5 Ngxe5 26. Nxe5 P@e6 27. Qxh5 Nxh5 28. Nxd7 Rd8 29. Ne5 O-O 30. B@f3 Nf6 31. e4 Q@d4 32. N@d3 Nxe4 33. P@h6 gxh6 34. Bxh6 P@g7 35. Bxg7 Kxg7 36. Bxe4 B@f6 37. N@h5+ Kh8 38. P@h6 P@g7 39. hxg7+ Bxg7 40. Nxg7 Q@g8 41. Nh5 P@g4 42. P@g7+ Qxg7 43. Nxg7 gxh3 44. Nh5 B@g7 45. Q@g4 Rg8 46. Nxf7# 1-0
+
+
+[Event "Rated Crazyhouse tournament https://lichess.org/tournament/RnlSauvL"]
+[Site "https://lichess.org/TwtDOKh7"]
+[Date "2016.08.17"]
+[Round "-"]
+[White "sexy_and_i_know_it"]
+[Black "puressence"]
+[Result "1-0"]
+[WhiteElo "2566"]
+[BlackElo "2561"]
+[TimeControl "60+0"]
+[Termination "Normal"]
+[Variant "Crazyhouse"]
+[ECO "A00"]
+[Opening "Van Geet Opening"]
+[StudyName "Sunsetter"]
+[ChapterName "sexy_and_i_know_it vs puressence"]
+[ChapterURL "https://lichess.org/study/1wzY0YmD/mCJYOA7G"]
+[Annotator "https://lichess.org/@/thibault"]
+[FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/ w KQkq - 0 1"]
+[SetUp "1"]
+
+1. Nc3 Nf6 2. Nf3 g6 3. e4 Bg7 4. d4 O-O 5. h4 d6 6. Be2 Nc6 7. Ng5 h6 8. Nxf7 Rxf7 9. h5 gxh5 10. P@g6 Rf8 11. Bxh5 e5 12. dxe5 Nxe5 13. P@f5 P@b4 14. P@g5 bxc3 15. gxf6 P@d2+ 16. Bxd2 cxd2+ 17. Qxd2 Qxf6 18. N@f7 Nxf7 19. gxf7+ Kh7 20. N@d5 Rxf7 21. P@g6+ Kh8 22. gxf7 Bxf5 23. R@g8+ Rxg8 24. fxg8=Q+ Kxg8 25. Nxf6+ Bxf6 (25... Kh8 { is recommended by local analysis, even though it leads to mate in one (instead of mate in two) }) 26. Q@f7+ Kh8 27. R@g8# 1-0
+
+
+[Event "Computer Chess Game"]
+[Site "INTEL-PC"]
+[Date "2015.05.02"]
+[Round "283"]
+[White "sunsetter_7g"]
+[Black "Imortal v1.0"]
+[Result "0-1"]
+[Variant "crazyhouse"]
+[TimeControl "180+1"]
+[Annotator "2. +0.00 1... -0.10"]
+[ECO "A05"]
+[Opening "Zukertort Opening: Quiet System"]
+[StudyName "Sunsetter"]
+[ChapterName "sunsetter_7g vs Imortal v1.0"]
+[ChapterURL "https://lichess.org/study/1wzY0YmD/1VJfoa81"]
+
+1. e3 Nf6 { -0.10/15 29 } 2. Nf3 { +0.00/14 9 } 2... Nc6 { -0.09/15 49 } 3. Bb5 { +0.04/14 14 } 3... e6 { +0.00/13 44 } 4. d4 { +0.10/14 20 } 4... Bd6 { +0.19/11 47 } 5. Nc3 { +0.15/14 31 } 5... Bb4 { +0.07/11 29 } 6. Bd2 { +0.13/14 19 } 6... Bxc3 { +0.22/13 42 } 7. Bxc3 { +0.23/15 1:06 } 7... N@e4 { +0.38/12 47 } 8. O-O { +0.24/14 16 } 8... Nxc3 { +0.82/12 34 } 9. bxc3 { +0.39/14 41 } 9... B@b2 { +0.37/10 33 } 10. c4 { +0.51/13 19 } 10... Bxa1 { +0.42/12 27 } 11. Qxa1 { +0.51/14 51 } 11... R@g6 { +0.46/9 27 } 12. c5 { +0.81/11 16 } 12... a6 { +0.72/10 26 } 13. Bc4 { +0.82/12 25 } 13... d5 { +0.76/10 32 } 14. cxd6 { +0.77/13 47 } 14... cxd6 { +1.07/9 33 } 15. P@g3 { +0.73/12 33 } 15... b5 { +1.50/9 21 } 16. Be2 { +0.77/12 16 } 16... Bb7 { +1.21/9 33 } 17. B@f4 { +0.81/12 28 } 17... Nd5 { +1.63/10 29 } 18. Bxd6 { +1.26/12 35 } 18... Qxd6 { +0.25/10 31 } 19. B@c5 Qb8 { +0.09/8 9 } 20. N@d6+ { +0.09/10 2.2 } 20... Kf8 { -0.56/9 9 } 21. P@h5 { +0.18/10 2.3 } 21... Rf6 { -0.04/9 7 } 22. Nxb7+ { +0.16/11 2.2 } 22... P@e7 { -0.53/8 7 } 23. e4 { +0.26/12 2.2 } 23... Qxb7 { -1.07/8 7 } 24. exd5 { +0.45/11 2.2 } 24... exd5 { -0.88/9 7 } 25. B@h4 { +0.32/10 2.2 } 25... Re6 { -0.14/8 5 } 26. Re1 { +0.16/10 4 } 26... B@a5 { +1.95/6 5 } 27. N@f4 { +0.71/10 2.1 } 27... Re4 { +2.35/7 5 } 28. Nxd5 { +0.73/10 2.1 } 28... P@b2 { +2.97/7 5 } 29. Nxe7 { +1.32/10 2.1 } 29... bxa1=Q { +2.63/7 5 } 30. Nxc6+ { +1.48/10 2.1 } 30... Kg8 { +5.13/7 5 } 31. Rxa1 { +0.90/10 4 } 31... Qxc6 { Xboard: Forfeit due to invalid move: Q@g5 (_1_1 via ^0) res=25 } { +5.95/7 5 } 0-1
+
+
+[Event "Sunsetter: Trying to find sunsetter_7g movegen bug"]
+[Date "2016.08.18"]
+[Result "*"]
+[Variant "Crazyhouse"]
+[ECO "A00"]
+[Opening "Barnes Opening"]
+[StudyName "Sunsetter"]
+[ChapterName "Trying to find sunsetter_7g movegen bug"]
+[ChapterURL "https://lichess.org/study/1wzY0YmD/z8XQdfk2"]
+[Annotator "https://lichess.org/@/thibault"]
+[FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/ w KQkq - 0 1"]
+[SetUp "1"]
+[UTCDate "2016.08.18"]
+[UTCTime "16:48:56"]
+
+1. f3 a5 2. g4 Nf6 3. b4 Ng8 4. bxa5 Nf6 5. a6 Ng8 6. P@a7 Nf6 7. axb8=Q Rxb8 (7... Ng8 8. Qa7 Rxa7 9. N@b8 { Still not trying to drop the "queen". }) 8. N@a7 { Sunsetter could drop the "queen" with mate in 1. } *
+
+
+[Event "Sunsetter: KyleLegion vs A.I. level 8"]
+[Date "2016.08.19"]
+[Result "*"]
+[Variant "Crazyhouse"]
+[ECO "C02"]
+[Opening "French Defense: Advance Variation, Nimzowitsch System"]
+[StudyName "Sunsetter"]
+[ChapterName "KyleLegion vs A.I. level 8"]
+[ChapterURL "https://lichess.org/study/1wzY0YmD/zMJ7i5AB"]
+[Annotator "https://lichess.org/@/thibault"]
+[FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR/ w KQkq - 0 1"]
+[SetUp "1"]
+[UTCDate "2016.08.19"]
+[UTCTime "07:45:52"]
+
+1. e4 e6 2. d4 d5 3. e5 c5 4. Nf3 cxd4 5. Nxd4 P@f6 6. exf6 Nxf6 7. Bg5 Nbd7 8. Nc3 Bc5 9. Nf3 P@e4 10. Nd4 Bxd4 11. Qxd4 N@c6 12. Qd1 Rg8 13. Bb5 Nde5 14. O-O Qd7 15. B@f4 a6 16. Bxc6 Nxc6 17. N@c7+ Kf8 18. Nxa8 B@c5 19. Bxf6 gxf6 20. P@h6 B@d6 21. P@g7+ Ke8 22. R@h8 Ne7 23. N@h5 Bxf4 24. Nxf6+ Kd8 25. Rxg8+ Nxg8 26. Nxd7 Kxd7 27. Nxd5 Bxh2+ 28. Kxh2 R@h4+ 29. P@h3 B@f4+ (29... B@e5+ 30. g3 Rxh3+ 31. Kxh3) *
+
+
