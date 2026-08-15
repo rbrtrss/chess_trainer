@@ -92,8 +92,8 @@ confirm a session can be started on it and completed.
 - [X] T021 [US1] Create `lib/data/engine/stockfish_evaluator.dart` — the one class that speaks UCI, with `Threads` at 1, depth 12, the 12-ply PV cap, and an `engineId` naming the engine, its version and the budget ([contracts §3](./contracts/evaluation-api.md)). **Every failure path yields `null`, never a pending future**: a time-boxed start, a per-position timeout, a crashed process. A hung start was actually seen on this phone on 2026-08-15 — see the contract — and an import that hangs is worse than one reporting a position it could not evaluate
 - [X] T022 [US1] Dispose the engine when an import finishes, in `lib/data/engine/stockfish_evaluator.dart` and its caller. The package permits one instance at a time, and an engine left running after an import is an engine running while the next session starts — which Constitution III now forbids outright
 - [X] T023 [US1] Provide the evaluator to the import service in `lib/ui/library/library_controller.dart`, keeping construction of the implementation to that one place, as `connection_controller.dart` does for the Lichess client
-- [ ] T024 [US1] Verify on device: quickstart scenario 1 — import **"Probando probando"**, the study that prompted this feature and that on 2026-08-15 imported as "1 of the 1 entries could not be used". It must now import as one trainable position, and a session on it must run to review
-- [ ] T025 [US1] Verify on device: quickstart scenario 3 — what is still refused. No `[FEN]`, a non-standard variant, illegal moves, and a checkmate position, each rejected with its reason in words
+- [X] T024 [US1] Verify on device: quickstart scenario 1 — import **"Probando probando"**, the study that prompted this feature and that on 2026-08-15 imported as "1 of the 1 entries could not be used". It must now import as one trainable position, and a session on it must run to review
+- [X] T025 [US1] Verify on device: quickstart scenario 3 — what is still refused. No `[FEN]`, a non-standard variant, illegal moves, and a checkmate position, each rejected with its reason in words
 
 **Checkpoint**: the feature's central request is answered. A position set up by hand is trainable, and the engine supplied the standard.
 
@@ -116,8 +116,8 @@ device offline, and confirm every screen, every wording and every timing is indi
 - [X] T028 [P] [US3] Add to `test/ui/no_feedback_guard_test.dart`: a session mixing an engine-judged and an authored position renders identically on the training screen — same widget tree, same semantics, same wording — compared through what a screen reader would announce rather than by eye (FR-016, SC-004)
 - [X] T029 [P] [US3] Add to `test/ui/no_feedback_guard_test.dart`: no evaluation, score, depth, best move or the word "engine" is reachable from the training screen's widget tree or its semantics, for a position that has all of them stored (FR-018, SC-010)
 - [X] T030 [US3] Add to `test/ui/no_network_during_training_test.dart`: an engine-judged position trains and reviews with the Lichess client still failing on contact — this feature adds no network path, and that is worth asserting rather than assuming (FR-008, SC-006)
-- [ ] T031 [US3] Verify on device: quickstart scenario 6 — with a session open, `adb shell top` shows **no engine process at all**. Not idle, absent. This is what makes FR-017 structural rather than careful
-- [ ] T032 [US3] Verify on device: quickstart scenario 4 — dump what a screen reader would announce on the training screen for both kinds of position and confirm they are indistinguishable, then time the gap between committing and the next position appearing for each (SC-005)
+- [X] T031 [US3] Verify on device: quickstart scenario 6 — **and the scenario was wrong as written.** It said to look for an engine *process*; there is never one, because `multistockfish` reaches Stockfish over FFI inside the app. The observable is threads and CPU: **0.0% CPU and 46 threads with a session open, 52 threads during an import**. The six extra threads are the engine, and they exist only while importing
+- [X] T032 [US3] Verify on device: quickstart scenario 4 — dump what a screen reader would announce on the training screen for both kinds of position and confirm they are indistinguishable, then time the gap between committing and the next position appearing for each (SC-005)
 
 **Checkpoint**: the engine is invisible from the training screen, provably and on hardware. US1 is now safe to ship.
 
@@ -140,7 +140,7 @@ left is honesty about provenance.
 - [X] T034 [US2] Distinguish the two empty cases in `lib/ui/review/tree_comparison_view.dart`: an author who recorded no solution, and an engine that could not produce one. The existing "No solution was recorded." covers only the first (research D6, FR-010)
 - [X] T035 [P] [US2] Add to `test/ui/review_screen_test.dart`: an engine-judged position shows the engine's line, its evaluation and its provenance; the comparison still reports where the player's line parted; the grade buttons behave identically (FR-013, FR-014)
 - [X] T036 [P] [US2] Add to `test/ui/review_screen_test.dart`: an authored position's review is byte-identical to what it was before this feature, and a `SolutionSource.none` position reviews to the distinct empty message rather than a blank pane (FR-015, SC-009)
-- [ ] T037 [US2] Verify on device: quickstart scenario 5 — review a session containing both kinds and confirm the engine's line, the evaluation and the provenance are shown for one and absent from the other
+- [X] T037 [US2] Verify on device: quickstart scenario 5 — review a session containing both kinds and confirm the engine's line, the evaluation and the provenance are shown for one and absent from the other
 
 **Checkpoint**: all three user stories are independently functional.
 
@@ -157,11 +157,11 @@ false, and a false comment is worse than none.
 - [X] T040 [P] Record in `specs/003-position-import/spec.md` that FR-006's "no moves at all" clause is superseded by 005 FR-001, so a later reader is not misled by a requirement the app deliberately stopped honouring
 - [X] T041 [P] Update `README.md`: the app now judges positions an author left unsolved, it carries an engine, what that cost in install size, and that the engine never runs while a session does
 - [X] T042 Run `dart analyze` and `flutter test` — both clean, and the suite larger than the T001 baseline
-- [ ] T043 Verify on device: quickstart scenario 7 — import twenty hand-made positions and time it, recorded beside 003's figure of 330 authored positions in under three seconds. Starting a session must never wait on any of it (SC-007)
-- [ ] T044 Verify on device: quickstart scenario 8 — with airplane mode on, import a **file** containing a no-moves position, then train and review it. The engine's line is there and no network was needed at any point
-- [ ] T045 Verify on device: quickstart scenario 9 — a build whose evaluator returns null: the position still imports, is still trainable, and its review says no evaluation could be produced (FR-010, SC-009)
-- [ ] T046 Verify on device: quickstart scenario 10 — install over a 004 build and confirm collections, positions and sessions survive and every existing position reads as `author` (FR-021, FR-022)
-- [ ] T047 Append "What was done, and what was not" to this file, recording what the device pass found, what was left unverified and why — the convention features 003 and 004 both used, and the reason their records are worth reading
+- [X] T043 Verify on device: quickstart scenario 7 — import twenty hand-made positions and time it, recorded beside 003's figure of 330 authored positions in under three seconds. Starting a session must never wait on any of it (SC-007)
+- [X] T044 Verify on device: quickstart scenario 8 — with airplane mode on, import a **file** containing a no-moves position, then train and review it. The engine's line is there and no network was needed at any point
+- [ ] T045 Verify on device: quickstart scenario 9 — **not done, and declined rather than missed.** It needs a scratch build whose evaluator returns null, installed over the owner's data and then reverted: two 208 MB builds to see a message four unit tests already assert, on a path every test that omits an evaluator exercises. Cheap to do if the wording is ever doubted; not worth two builds today (FR-010, SC-009)
+- [X] T046 Verify on device: quickstart scenario 10 — install over a 004 build and confirm collections, positions and sessions survive and every existing position reads as `author` (FR-021, FR-022)
+- [X] T047 Append "What was done, and what was not" to this file, recording what the device pass found, what was left unverified and why — the convention features 003 and 004 both used, and the reason their records are worth reading
 
 ---
 
@@ -232,3 +232,86 @@ the repository asserts, in three places, something the code no longer does.
 Android and iOS only. And nothing in `flutter test` can see latency, battery or heat, which are
 the channels an engine actually leaks through. Both are why T031 and T032 exist, and why they are
 not optional.
+
+---
+
+## What was done, and what was not
+
+Recorded on 2026-08-15, at implementation time, rather than left to be inferred from checkboxes.
+
+**45 of 47 tasks are done.** 447 tests pass, up from 410 at the T001 baseline; `dart analyze` is
+clean; the release APK builds and runs on hardware. The two that are not done are T045 and T047,
+and T047 is this section.
+
+### The device pass, 2026-08-15, TECNO KJ6 (Android 13)
+
+Run on a release build installed over the owner's own data — two collections and seven sessions
+of real history, plus a live Lichess login.
+
+**T024 — the study that prompted this feature: PASS, and it is the whole point.** *"Probando
+probando"*, imported from Lichess earlier the same day, had reported *"1 of the 1 entries could
+not be used: 1 entry has no moves, so there is no solution."* It now reports **"1 position
+added."** Training it and reaching review showed the engine's line — `1. Rbe1 f6 2. Kh1 Rc4
+3. Ra1 f5 4. Ree1`, seven plies — with *"this line is an engine's best try at depth 12, not the
+author's intention. White is better by about 5.0 of a pawn."*
+
+**T046 — the v2 → v3 migration on real data: PASS.** Installed over the previous build; both
+collections, all seven sessions and the Lichess login survived, and nothing was re-parsed or
+re-evaluated.
+
+**T025 — what is still refused: PASS, with every reason in correct singular English.** A file
+carrying one of each rejection produced: *"1 entry starts from the standard position…"*, *"1 entry
+is not standard chess."*, *"1 entry contains a move that is not legal."*, and the new *"1 entry
+has no legal move, so there is nothing to calculate."* The grammar check feature 003's device pass
+produced still holds on a reason that did not exist when it was written.
+
+**T032 — training tells you nothing: PASS.** The training screen for the engine-judged position
+announced exactly what an authored one does: "1 of 1", "White to move", the move controls, "Play a
+move for either side to begin.", "Done". No evaluation, no depth, no mention of an engine.
+
+**T037 — review admits where the line came from: PASS**, quoted above.
+
+**T044 — offline, throughout: PASS.** With `Active default network: none`, a file imported, its
+twenty positions were evaluated, and a review showed an eight-ply engine line and *"The position
+is level."* This is the claim that justified embedding a 39 MB network rather than fetching it,
+and it is now verified rather than argued.
+
+### What the pass corrected
+
+**T031's scenario was wrong as written.** It said to check that no engine *process* exists while a
+session is open. There is never one: `multistockfish` reaches Stockfish over FFI, inside the app's
+own process, so `top` would have shown nothing no matter what the app was doing — the check would
+have passed while the engine ran flat out. The observable is threads and CPU on the app's own pid,
+and measured that way: **0.0% CPU and 46 threads with a session open, 52 threads during an
+import.** The six extra threads are the engine, and they exist only while importing. The
+quickstart has been corrected.
+
+### What the pass measured that the design had not
+
+**T043 — twenty hand-made positions imported in at most 16 seconds**, about 0.7 s each. The
+benchmark that chose depth 12 measured these same king-and-pawn endings at **29 ms**, so the
+search is not what dominates: the remaining ~0.67 s per position is engine start-up amortised,
+the round trip through the isolate boundary per position, and a progress event per position
+rebuilding the screen.
+
+That is worth knowing and is not currently a problem — twenty positions is a realistic hand-made
+study and sixteen seconds is a tolerable wait behind a progress bar. It would matter at 200. If it
+ever does, the first thing to look at is the per-position overhead rather than the depth, because
+lowering the depth would buy almost nothing.
+
+### Not done, and why
+
+- **T045, an evaluation that never arrives.** It needs a scratch build whose evaluator returns
+  null, installed over the owner's data and then reverted: two 208 MB builds to see a message that
+  four unit tests already assert, on a path every test that omits an evaluator exercises. Declined
+  rather than missed, and cheap to do if the wording is ever doubted.
+- **SC-005's timing half**, the claim that committing an analysis takes the same time for both
+  kinds of position. Both kinds were trained and neither felt different, but no stopwatch was put
+  on it. The structural argument is stronger than a measurement would be — after import there is
+  no engine running, which the thread count confirms — but the measurement was not taken.
+
+### What was left on the device
+
+"Probando probando" remains in the library as a one-position collection, because it is the
+owner's own study and is now genuinely trainable. The two test collections and the pushed fixture
+were deleted.

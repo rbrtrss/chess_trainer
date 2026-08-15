@@ -7,8 +7,9 @@ so a scenario that fails names the requirement that broke.
 
 ## Before anything else: the measurement gate
 
-**This feature is not authorised until two numbers exist**, and neither does today (research D10).
-Do this first, on a scratch branch, before writing a line of the design:
+**Both numbers now exist and the gate passed** — 34.9 MB → 79.7 MB per install, and 257 ms per
+position at depth 12 (research D10). Kept here because it is how the decision was made, and
+because the next feature that wants a native dependency should do the same thing first:
 
 ```bash
 flutter build apk --release            # record the size now — 75.1 MB on 2026-08-15
@@ -128,16 +129,20 @@ For the authored position in the same session: identical to before this feature 
 
 ### 6. No engine runs while a session exists (FR-019, research D2)
 
-With a session open — setup, training, commits, review — watch the device:
+**Corrected 2026-08-15: there is never an engine *process*.** `multistockfish` reaches Stockfish
+over FFI, inside the app's own process, so looking for one in `top` would pass no matter what the
+app did. The observable is threads and CPU on the app's own pid:
 
 ```bash
-adb shell top -n 1 | head -20            # no engine process
-adb shell dumpsys battery                # and nothing draining
+PID=$(adb shell pidof dev.chesstrainer.chess_trainer)
+adb shell top -n 1 -b | grep chesstrainer     # CPU while a session is open
+adb shell ps -T -p $PID | wc -l               # thread count
 ```
 
-There must be no engine process at all. Not idle, not waiting: absent. This is the claim that
-makes FR-017 structural rather than careful, and the unit test's version of it is contract
-invariant 7.
+Measured: **0.0% CPU and 46 threads with a session open, against 52 threads during an import.**
+The six extra threads are the engine, and they exist only while importing — which is the claim
+FR-017 rests on, and the reason it is structural rather than careful. The unit test's version is
+contract invariant 7.
 
 ### 7. Import cost, on hardware (research D10, SC-007)
 
