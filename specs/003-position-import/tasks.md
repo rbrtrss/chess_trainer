@@ -153,7 +153,7 @@ line that follows lands against a rule that is already there (research D14).
 - [X] T049 [P] [US2] Create `lib/ui/library/connection_controller.dart` — log in, log out, current connection, expiry surfaced as "log in again" and never as a silent failure
 - [X] T050 [P] [US2] Create `lib/ui/library/study_picker_screen.dart` listing the account's studies (FR-013), with a paste-an-address path that works without logging in for a public study (FR-011)
 - [X] T051 [US2] Wire the Lichess paths into `lib/ui/library/import_screen.dart`, sharing the progress, duplicate check and report already built in US1
-- [ ] T052 [US2] Verify on device: import a public study with no login, log in, import a private one, then enable airplane mode and train it (quickstart scenarios 4 and 5) — **two of the four done on 2026-08-15** during feature 004's pass: a public study imported with no login at all, on a profile that had never connected; and the login itself run by the account holder, though from the home screen this feature did not have. Importing a *private* study and training under airplane mode are still not done
+- [X] T052 [US2] Verify on device: import a public study with no login, log in, import a private one, then enable airplane mode and train it (quickstart scenarios 4 and 5) — **all four done by 2026-08-15**; the private-study leg has a proper negative control, recorded in "The private study" below
 
 **Checkpoint**: US1 and US2 both work independently. The app has a credential for the first time.
 
@@ -514,3 +514,37 @@ fallback stays unbuilt**, which is the outcome that costs the least code.
 indicator was never caught on device — the import completes before a poll can catch it. That is
 the good failure of that requirement, and the widget test still covers the progress states
 against an injected delay.
+
+### The private study — 2026-08-15
+
+The last leg of T052, and the one that needed the account holder: a study only he can see.
+
+He made one called **"Probando probando"** and it was imported through *My studies*, the
+authenticated path. The result was not positions — it was a correct refusal:
+
+> Nothing in this could be trained, so nothing was imported.
+> 1 of the 1 entries could not be used:
+> 1 entry has no moves, so there is no solution.
+> • Chapter 1
+
+Which is exactly right for a chapter someone has just created and not put moves in, and it is the
+`noMoves` rejection reason reaching a player on real content for the first time rather than on a
+fixture. The library was unchanged afterwards: nothing partial, nothing empty (FR-019).
+
+**The negative control, which is what makes this leg mean anything.** "It imported" proves the
+authenticated path only if the study was genuinely private, and the app cannot demonstrate that
+about itself. Asking Lichess without a token settles it:
+
+```bash
+curl -s 'https://lichess.org/api/study/by/rbrtrss' -H 'Accept: application/x-ndjson'
+```
+
+**Unauthenticated, that account has exactly one visible study — "ronda7". "Probando probando" is
+not in it.** The app, holding the token, listed eleven including it. So the study is private, the
+listing reached it, and the fetch that followed carried the credential. Costs nothing and needs no
+login to run again.
+
+The three other legs of T052 were closed earlier the same day: a public study imported with no
+login at all, on a profile that had never connected; the login itself, run by the account holder;
+and training under airplane mode, with `Active default network: none`, on a collection that had
+come from Lichess.
