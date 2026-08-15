@@ -37,7 +37,13 @@ import 'package:http/http.dart' as http;
 /// convention is a URL identifying the project. It is public by design and the
 /// constitution explicitly permits committing it — unlike a token, it proves
 /// nothing and grants nothing.
-const String lichessClientId = 'https://github.com/roberto/chess_trainer';
+///
+/// It is not inert, though: **this is the string Lichess shows the player on
+/// the authorization page**, above the list of permissions they are about to
+/// grant. It should therefore be somewhere they can go to see what they are
+/// granting them to, which is why it is this repository rather than an
+/// arbitrary identifier.
+const String lichessClientId = 'https://github.com/rbrtrss/chess_trainer';
 
 /// Where Lichess sends the player back to.
 ///
