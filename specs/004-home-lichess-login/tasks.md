@@ -128,7 +128,7 @@ untouched, and that no other screen offers a competing account control.
 - [X] T036 Run `dart analyze` and `flutter test` — both clean, and the suite no smaller than the T001 baseline except where tests were deliberately moved
 - [X] T037 Verify on device: quickstart scenario 7 — **connected state done on 2026-08-15**: four cold starts, each showing "Connected as rbrtrss", **0 bytes** on the app's uid measured through `dumpsys netstats`, then a whole session with 0 more. The other three account states need the login destroyed to reach, so they are not covered (SC-004)
 - [X] T038 Verify on device: quickstart scenario 8 — done 2026-08-15 on a 1080×2460 TECNO KJ6. The bar renders correctly below Start, no spinner, and **Start stays fully on screen with the resume prompt showing** — the worst-case layout that set the 56px budget. No reflow seen across eight cold starts (SC-005)
-- [ ] T039 Verify on device: quickstart scenario 9 — needs a **fresh install**, which would destroy the owner's collections and four sessions of history. Partially covered on the existing install: a whole session ran start-to-review and the library, import and history screens were walked without the app asking about Lichess once. The never-connected half is untested on hardware (FR-005, FR-006, SC-003)
+- [X] T039 Verify on device: quickstart scenario 9 — **done 2026-08-15 on a genuinely fresh install, and without destroying anything**: a throwaway Android user was created and the package installed into it, which gives its own data directory and therefore a first-ever launch, leaving user 0's two collections and six sessions untouched. Full record below (FR-005, FR-006, SC-003)
 - [X] T040 Verify on device: quickstart scenario 10 — done 2026-08-15, **with a real account connected**, which is the first time this assertion has had a username available to leak. The training screen's tree contains no `rbrtrss`, no "Lichess", no "connected", no collection name; review likewise carries no account control (FR-020, SC-009)
 - [X] T041 Verify on device: quickstart scenario 11 — done 2026-08-15. Installed over the 003 build of 2026-08-14 that had a live login and 2 collections. The account survived with no re-login and no request, both collections and all four past sessions are intact, and there was no migration to run (FR-022)
 
@@ -202,10 +202,11 @@ first task to hand to whoever owns the account.
 Recorded at implementation time, on 2026-08-15, rather than left to be inferred from the
 checkboxes.
 
-**40 of 41 tasks are done.** `flutter test` passes 406 tests, up from the 369 of the T001
+**All 41 tasks are done.** `flutter test` passes 406 tests, up from the 369 of the T001
 baseline; `dart analyze` is clean; the release APK builds. The device pass of 2026-08-15 is
 recorded below and closed five of the eight verification tasks. The account holder then ran the
-three that needed their credentials, on the same day; only T039 remains, and it remains by choice.
+two that needed their credentials, and T039 was done last, on a throwaway Android user rather
+than by wiping the device.
 
 ### The one thing the design got wrong
 
@@ -379,3 +380,58 @@ the launch guarantee from a credential planted by a test to one written by the r
 would destroy two collections and six sessions of real history to prove something already
 half-covered; the second needs a clock-shifted build and would delete a working token. Both were
 judged not worth their cost, which is a different thing from being unverified by accident.
+
+### T039 on a throwaway user, 2026-08-15
+
+T039 asks for a fresh install, and the phone held two collections and six sessions of real
+history. Rather than trade those for the test, Android's multi-user support was used: a secondary
+user was created, the package was installed into it with `pm install-existing --user 10`, and the
+device was switched to that user. A secondary user gets its own data directory, so this is a
+first-ever launch in every sense the app can detect, with user 0 untouched throughout.
+
+**What was confirmed on the fresh install:**
+
+- **First launch.** The bundled samples were seeded as an ordinary collection (003 FR-033), the
+  bar read `Lichess · Not connected`, and nothing prompted, nagged or blocked.
+- **A whole session.** Start, three commits, review, three grades, finish. Then history, showing
+  the one session just played.
+- **Deleting the last collection.** The warning was the cannot-be-undone one, deleting worked,
+  and the home screen fell back to the empty-library state — **with the account bar still on it**,
+  which is the second body state FR-001 has to cover and the state a player is most likely to want
+  an account in.
+- **Importing again with no account** (FR-016). A public study by pasted address: 7 positions, on
+  a profile that had never connected to anything. Tapping the button twice produced the duplicate
+  warning, which is 003 FR-010 confirming itself by accident.
+- **The app never asked about Lichess.** Every mention of it across the whole run was one the
+  player had gone looking for.
+
+**What could not be done there, and why.** The file-picker leg needs a PGN in that user's
+storage, and `adb push` writes to user 0 whatever the foreground user is — `adb shell` is bound to
+user 0 by design, and copying across users is refused. So `file_selector` through the Storage
+Access Framework is *still* unexercised on device, which was already 003's known gap (its T034).
+The picker itself was opened and driven far enough to confirm it launches
+`com.android.documentsui` and returns cleanly; only choosing a file was impossible.
+
+**Cleanup.** The device was switched back to user 0, the throwaway user removed, and the fixture
+deleted from the host and from both the device paths it had been written to. Switching users
+leaves the phone on its lock screen, which is expected and needs the owner's PIN.
+
+### The second defect the device found
+
+Asking for **My studies** on a never-connected install said:
+
+> That study is not public, so it needs a connected Lichess account. Connect one on the home
+> screen.
+
+The player named no study. That is `NotLoggedInError`'s wording — written for someone who pasted
+the address of a private study — reused in a place where its first clause is not about anything.
+The message named the right fix and was still about the wrong thing, and FR-017 only asked for
+the fix, so nothing caught it.
+
+Now a `studiesNeedAccountMessage` of its own, used by both the import screen and the picker's
+defensive state: "Picking from your own studies needs a connected Lichess account. Connect one on
+the home screen." The expired case keeps its own sentence, because an expired login and no login
+are different problems. Regression assertions added for both halves — that the message names your
+own studies, and that it does not begin by talking about "that study".
+
+Two features, two device passes, three defects between them, and every one was a sentence.

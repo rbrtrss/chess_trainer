@@ -176,6 +176,14 @@ void main() {
       expect(message, contains('connected Lichess account'));
       expect(message, contains('home screen'),
           reason: 'FR-017: say what is needed *and* where it lives');
+      // Found on a device: this used to reuse NotLoggedInError's wording,
+      // which opens "That study is not public" — true of a pasted private
+      // address, and nonsense here, where the player named no study at all and
+      // asked for their own. A message can name the right fix and still be
+      // about the wrong thing.
+      expect(message, isNot(contains('That study')),
+          reason: 'the player asked for their own studies and named none');
+      expect(message.toLowerCase(), contains('your own studies'));
       expectNoLoginOffered('being told an account is needed');
       expect(api.calls, isEmpty,
           reason: 'nothing to ask Lichess when there is nobody to ask about');

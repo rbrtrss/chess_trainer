@@ -127,9 +127,13 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
 
     if (account is! AccountConnected) {
       setState(() {
+        // An expired login and no login at all are different problems with
+        // different fixes, so they get different sentences — and neither is
+        // the "that study is not public" wording, which belongs to a pasted
+        // address and says nothing true about this request.
         _studiesNeedAccount = account is AccountExpired
             ? messageForNetworkError(LoginExpiredError())
-            : messageForNetworkError(NotLoggedInError());
+            : studiesNeedAccountMessage;
       });
       return;
     }

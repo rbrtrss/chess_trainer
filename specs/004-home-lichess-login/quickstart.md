@@ -160,6 +160,27 @@ different aspect ratio or text scale deserves a look.
 
 ### 9. Lichess stays optional (FR-005, FR-006, SC-003)
 
+**Do not wipe the device for this.** Android's multi-user support gives a genuinely fresh install
+without touching anything, and it is what this scenario was run on:
+
+```bash
+adb shell pm create-user t039                 # returns a user id, e.g. 10
+adb shell am start-user 10
+adb shell pm install-existing --user 10 dev.chesstrainer.chess_trainer
+adb shell am switch-user 10                   # takes over the screen; reversible
+# ... run the scenario ...
+adb shell am switch-user 0
+adb shell pm remove-user 10
+```
+
+A secondary user gets its own data directory, so the app cannot tell the difference from a first
+install. Switching back leaves the phone on its lock screen, which is expected.
+
+**One thing this cannot cover:** the file picker. `adb push` writes to user 0 whatever the
+foreground user is, and copying across users is refused, so there is no way to put a PGN where
+the picker in the secondary user can see it. Exercising `file_selector` needs a file already on
+the device in the profile being tested.
+
 Fresh install, never connect. Import a PGN file from the device, run a session, review it, browse
 history, delete a collection, import again. The app must not ask about Lichess once, must not
 block anything, and the bar must sit quietly saying `Not connected` throughout.

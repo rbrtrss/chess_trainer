@@ -43,7 +43,7 @@ class StudyPickerScreen extends ConsumerWidget {
             AccountExpired() =>
               _Message(text: messageForNetworkError(LoginExpiredError())),
             AccountDisconnected() =>
-              _Message(text: messageForNetworkError(NotLoggedInError())),
+              const _Message(text: studiesNeedAccountMessage),
           },
         ),
       ),

@@ -126,6 +126,16 @@ class ConnectionController {
   }
 }
 
+/// Why the player's own studies cannot be listed right now (FR-017).
+///
+/// Not `messageForNetworkError(NotLoggedInError())`, which says "That study is
+/// not public" — true when someone pasted the address of a private study, and
+/// nonsense when they asked for *their own* studies and named nothing. Found on
+/// a device on 2026-08-15, on a fresh install that had never connected.
+const String studiesNeedAccountMessage =
+    'Picking from your own studies needs a connected Lichess account. Connect '
+    'one on the home screen.';
+
 /// Turns a network failure into something a player can act on (SC-011).
 ///
 /// Every branch names what happened *and* what to do. A message that only
