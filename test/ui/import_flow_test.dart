@@ -111,13 +111,13 @@ void main() {
 
       expect(
         tester.widget<Text>(find.byKey(const Key('import-added-count'))).data,
-        '7 positions added.',
+        '8 positions added.',
       );
       expect(
         tester
             .widget<Text>(find.byKey(const Key('import-rejected-count')))
             .data,
-        contains('4 of the 11 entries could not be used'),
+        contains('3 of the 11 entries could not be used'),
       );
 
       // Grouped by reason rather than printed one per line: a real study can
@@ -128,7 +128,10 @@ void main() {
             'rejection-group-${'noStartingPosition'}')),
         findsOneWidget,
       );
-      expect(find.byKey(const Key('rejection-group-noMoves')), findsOneWidget);
+      // There is only one group now: feature 005 imports the no-moves chapter
+      // this fixture used to have rejected, so this study rejects for exactly
+      // one reason. The singular grammar form moved to its own test below,
+      // because that is what `noMoves` used to supply here.
 
       // And the common case is explained, not just counted.
       expect(
@@ -155,9 +158,28 @@ void main() {
       await runImport(tester);
 
       expect(find.textContaining('3 entries start from'), findsOneWidget);
-      expect(find.textContaining('1 entry has no moves'), findsOneWidget);
       expect(find.textContaining('entries starts'), findsNothing);
       expect(find.textContaining('entry have'), findsNothing);
+    });
+
+    testWidgets('the singular form is still exercised, on a reason that '
+        'survived feature 005', (tester) async {
+      // This test's whole point is that both forms are checked, and 005 removed
+      // the reason that used to supply the singular one — `noMoves`, now
+      // imported rather than rejected. Without replacing it, the grammar bug
+      // that prompted this test could come back on any single-entry group and
+      // nothing would notice.
+      await pumpImport(tester, pgn: '''
+[Event "Already over"]
+[FEN "7k/5Q2/6K1/8/8/8/8/8 b - - 0 1"]
+
+*
+''');
+      await runImport(tester);
+
+      expect(find.textContaining('1 entry has no legal move'), findsOneWidget);
+      expect(find.textContaining('1 entry have'), findsNothing);
+      expect(find.textContaining('entries has'), findsNothing);
     });
   });
 

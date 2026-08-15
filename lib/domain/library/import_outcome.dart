@@ -23,9 +23,20 @@ enum RejectionReason {
   /// exercise, and starting at move 1 is not a calculation exercise.
   noStartingPosition,
 
-  /// A position and a title, but no moves. There is no solution to compare an
-  /// analysis against, so the position could never be graded.
-  noMoves,
+  /// A position with no legal move: checkmate, stalemate, or any other
+  /// terminal state.
+  ///
+  /// **Replaced `noMoves` in feature 005**, and the swap is the whole feature in
+  /// one enum. An entry with a position and no *author's* moves used to be
+  /// rejected because there was no solution to grade against; an engine now
+  /// supplies one, so it is imported. What is still refused is a position with
+  /// nothing to calculate — importing one would open a board the player cannot
+  /// move on, which is a trap discovered after training starts rather than at
+  /// import where the report can explain it.
+  ///
+  /// `dartchess` decides this, never the engine (Constitution III: the engine
+  /// must not be consulted about anything dartchess can answer).
+  noLegalMoves,
 
   /// A move that is not legal in the position it is played from. The entry is
   /// rejected whole rather than truncated: a solution that ends early is
@@ -56,9 +67,9 @@ extension RejectionReasonText on RejectionReason {
           ? 'start from the standard position, so there is no position to train'
           : 'starts from the standard position, so there is no position to '
               'train',
-      RejectionReason.noMoves => many
-          ? 'have no moves, so there is no solution'
-          : 'has no moves, so there is no solution',
+      RejectionReason.noLegalMoves => many
+          ? 'have no legal move, so there is nothing to calculate'
+          : 'has no legal move, so there is nothing to calculate',
       RejectionReason.illegalMove => many
           ? 'contain a move that is not legal'
           : 'contains a move that is not legal',

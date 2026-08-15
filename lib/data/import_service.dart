@@ -9,11 +9,17 @@ library;
 import 'dart:convert';
 
 import 'package:chess_trainer/data/collection_repository.dart';
+import 'package:chess_trainer/data/engine/evaluator.dart';
+import 'package:chess_trainer/domain/position/evaluation.dart';
+import 'package:chess_trainer/domain/position/training_position.dart';
+import 'package:chess_trainer/domain/tree/move_path.dart';
+import 'package:chess_trainer/domain/tree/variation_tree.dart';
 import 'package:chess_trainer/data/import_parser.dart';
 import 'package:chess_trainer/domain/errors.dart';
 import 'package:chess_trainer/domain/library/collection.dart';
 import 'package:chess_trainer/domain/library/import_outcome.dart';
 import 'package:crypto/crypto.dart';
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 
@@ -113,14 +119,41 @@ abstract interface class ImportService {
 /// Injectable so tests can parse in-process. The default runs it on another
 /// isolate, which is the behaviour that matters on a phone and the behaviour
 /// that makes a widget test slow and flaky.
+/// Working out what the engine thinks of positions their author left unsolved
+/// (005 FR-007).
+///
+/// A separate progress state from [ImportParsing] because it is a separate
+/// wait, and one that can be much longer: parsing 330 positions takes under
+/// three seconds, while a search costs about a quarter of a second *each*
+/// (005 research D10). Reusing "Reading 12 of 12" would leave the screen
+/// claiming to be doing something it finished seconds ago.
+class ImportEvaluating implements ImportProgress {
+  const ImportEvaluating(this.done, this.total);
+
+  final int done;
+  final int total;
+}
+
 typedef ImportParserRunner = Future<ImportOutcome> Function(String pgn);
 
 class DefaultImportService implements ImportService {
-  DefaultImportService(this._collections, {ImportParserRunner? parse})
-      : _parse = parse ?? _parseOffIsolate;
+  DefaultImportService(
+    this._collections, {
+    ImportParserRunner? parse,
+    Evaluator? evaluator,
+  })  : _parse = parse ?? _parseOffIsolate,
+        // ignore: prefer_initializing_formals
+        _evaluator = evaluator;
 
   final CollectionRepository _collections;
   final ImportParserRunner _parse;
+
+  /// Supplies a solution where an author gave none (005 FR-007).
+  ///
+  /// Null on a platform with no engine, and in most tests. A null evaluator is
+  /// not an error: the positions that needed one keep [SolutionSource.none] and
+  /// stay trainable, which is FR-010 rather than a degraded mode.
+  final Evaluator? _evaluator;
 
   @override
   Future<XFile?> pickFile() => openFile();
@@ -162,7 +195,7 @@ class DefaultImportService implements ImportService {
   }) async* {
     yield const ImportParsing(0, 0);
 
-    final ImportOutcome outcome;
+    ImportOutcome outcome;
     try {
       // Off the UI isolate: parsing replays every move of every variation for
       // legality (Principle III), which on a large study is seconds of CPU and
@@ -180,6 +213,36 @@ class DefaultImportService implements ImportService {
     }
 
     yield ImportParsing(outcome.entryCount, outcome.entryCount);
+
+    // Where an author gave no line, an engine supplies one (005 FR-007).
+    //
+    // **This is the only place in the app that runs an engine**, and it runs
+    // here rather than during a session because a search beside a player who is
+    // calculating leaks through latency, battery and heat — channels no widget
+    // test can see. After import, no engine runs at all, which is what makes
+    // Principle I structural here rather than careful (005 research D2, and
+    // Constitution III since v1.1.0).
+    final needing =
+        outcome.positions.where((p) => p.solutionSource == SolutionSource.none);
+    if (needing.isNotEmpty && _evaluator != null) {
+      var done = 0;
+      yield ImportEvaluating(done, needing.length);
+
+      final evaluated = <TrainingPosition>[];
+      for (final position in outcome.positions) {
+        if (position.solutionSource != SolutionSource.none) {
+          evaluated.add(position);
+          continue;
+        }
+        evaluated.add(await _judged(position));
+        done++;
+        yield ImportEvaluating(done, needing.length);
+      }
+      outcome = ImportOutcome(
+        positions: IList(evaluated),
+        rejections: outcome.rejections,
+      );
+    }
 
     if (outcome.positions.isEmpty) {
       yield ImportFailed(
@@ -209,6 +272,39 @@ class DefaultImportService implements ImportService {
   }) =>
       _store(outcome, name: name, origin: origin, contentHash: contentHash);
 
+  /// One position, asked of the engine.
+  ///
+  /// Returns the position unchanged as [SolutionSource.none] when the engine
+  /// has nothing to say — which is a normal outcome, not a failure (FR-010).
+  /// One position upsetting the engine must not cost an import its other
+  /// entries, so anything thrown is caught here rather than escaping.
+  Future<TrainingPosition> _judged(TrainingPosition position) async {
+    final EngineLine? line;
+    try {
+      line = await _evaluator!.bestLine(position.initialPosition);
+    } on Object {
+      return position;
+    }
+    if (line == null || line.moves.isEmpty) return position;
+
+    var tree = VariationTree.empty(position.initialPosition);
+    var path = MovePath.root;
+    for (final move in line.moves.take(maxPrincipalVariationPlies)) {
+      final edit = tree.play(path, move);
+      tree = edit.tree;
+      path = edit.path;
+    }
+
+    return TrainingPosition(
+      id: position.id,
+      initialPosition: position.initialPosition,
+      solution: tree,
+      metadata: position.metadata,
+      solutionSource: SolutionSource.engine,
+      evaluation: line.evaluation,
+    );
+  }
+
   Future<ImportProgress> _store(
     ImportOutcome outcome, {
     required String name,
@@ -221,6 +317,10 @@ class DefaultImportService implements ImportService {
         origin: origin,
         contentHash: contentHash,
         positions: outcome.positions,
+        engineId: outcome.positions
+                .any((p) => p.solutionSource == SolutionSource.engine)
+            ? _evaluator?.engineId
+            : null,
       );
       return ImportReported(collection, outcome);
     } on StorageWriteError catch (error) {

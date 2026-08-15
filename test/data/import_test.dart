@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:chess_trainer/data/import_parser.dart';
 import 'package:chess_trainer/domain/errors.dart';
 import 'package:chess_trainer/domain/library/import_outcome.dart';
+import 'package:chess_trainer/domain/position/evaluation.dart';
 import 'package:chess_trainer/domain/tree/move_path.dart';
 import 'package:chess_trainer/domain/tree/variation_tree.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -82,18 +83,23 @@ void main() {
     });
 
     test('the usable chapters import and the rest are rejected', () {
-      // 11 chapters. Seven are trainable; three start from the standard
-      // position and carry no [FEN], and one is a position with no moves at
-      // all. One bad chapter does not discard the rest — that is the whole
-      // rule (invariant 3).
-      expect(outcome.positions, hasLength(7));
-      expect(outcome.rejections, hasLength(4));
+      // 11 chapters. **Eight are trainable since feature 005**, and three start
+      // from the standard position with no [FEN]. One bad chapter does not
+      // discard the rest — that is the whole rule (003 invariant 3).
+      //
+      // It was seven before 005, because one chapter is a position with no
+      // moves and there was no way to grade it. That chapter is exactly what
+      // this feature exists for, and it is a real one from a real study rather
+      // than a case invented to prove a point — which makes this the cheapest
+      // demonstration in the suite that the feature does something.
+      expect(outcome.positions, hasLength(8));
+      expect(outcome.rejections, hasLength(3));
     });
 
     test('each rejection says which kind of unusable it is', () {
       expect(
         outcome.rejections.map((rejection) => rejection.reason).toSet(),
-        {RejectionReason.noStartingPosition, RejectionReason.noMoves},
+        {RejectionReason.noStartingPosition},
       );
     });
 
@@ -110,9 +116,8 @@ void main() {
       // Three chapters, one line: "3 chapters start from the standard
       // position, so there is no position to train."
       final grouped = outcome.rejectionsByReason;
-      expect(grouped.keys, hasLength(2));
+      expect(grouped.keys, hasLength(1));
       expect(grouped[RejectionReason.noStartingPosition], hasLength(3));
-      expect(grouped[RejectionReason.noMoves], hasLength(1));
     });
   });
 
@@ -225,7 +230,8 @@ void main() {
       expect(outcome.rejections.first.reason, RejectionReason.illegalMove);
     });
 
-    test('an entry with no moves is rejected as having no solution', () {
+    test('an entry with no moves is imported, awaiting an engine (005 FR-001)',
+        () {
       const source = '''
 [Event "Position only"]
 [FEN "3k4/8/3K4/3P4/8/8/8/8 w - - 0 1"]
@@ -234,8 +240,26 @@ void main() {
 ''';
       final outcome = parseImport(source, newId: counterIds());
 
+      expect(outcome.rejections, isEmpty);
+      expect(outcome.positions.single.solutionSource, SolutionSource.none,
+          reason: 'the parser knows no engine exists; the import service is '
+              'what asks one and upgrades this to `engine`');
+    });
+
+    test('an entry with no legal move is rejected (005 FR-004)', () {
+      // Nothing to calculate. Importing it would open a board the player cannot
+      // move on — a trap found after training starts, rather than at import
+      // where the report can explain it.
+      const source = '''
+[Event "Already over"]
+[FEN "7k/5Q2/6K1/8/8/8/8/8 b - - 0 1"]
+
+*
+''';
+      final outcome = parseImport(source, newId: counterIds());
+
       expect(outcome.positions, isEmpty);
-      expect(outcome.rejections.single.reason, RejectionReason.noMoves);
+      expect(outcome.rejections.single.reason, RejectionReason.noLegalMoves);
     });
 
     test('an unnamed entry is referenced by its ordinal', () {

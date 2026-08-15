@@ -321,6 +321,20 @@ class _ProgressView extends StatelessWidget {
             Text('Reading the file…'),
           ],
         ),
+      // A separate line from parsing because it is a separate wait, and a
+      // longer one: a search costs about a quarter of a second per position
+      // (005 research D10), where parsing 330 costs under three seconds
+      // altogether. Leaving "Reading 12 of 12" on screen while the engine works
+      // would have the app claiming to do something it finished seconds ago.
+      ImportEvaluating(:final done, :final total) => Column(
+          key: const Key('import-evaluating'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Working out the answers: $done of $total'),
+            const SizedBox(height: 8),
+            LinearProgressIndicator(value: total == 0 ? null : done / total),
+          ],
+        ),
       ImportParsing(:final done, :final total) => Column(
           key: const Key('import-parsing'),
           crossAxisAlignment: CrossAxisAlignment.start,

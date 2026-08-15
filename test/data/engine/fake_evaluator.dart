@@ -60,10 +60,19 @@ class FakeEvaluator implements Evaluator {
     final moves = <Move>[];
     var current = position;
     for (var i = 0; i < plies; i++) {
-      final legal = current.legalMoves;
-      if (legal.isEmpty) break;
-      final from = legal.keys.first;
-      final to = legal[from]!.squares.first;
+      // `legalMoves` maps *every* piece of the side to move, including ones
+      // with nowhere to go, so the first key can carry an empty set. Taking
+      // `keys.first` blindly throws on those positions — which the import
+      // service catches, quietly turning a working fake into one that always
+      // answers `none`. That is exactly how this was found.
+      final from = current.legalMoves.entries
+          .where((entry) => entry.value.isNotEmpty)
+          .map((entry) => entry.key)
+          .firstOrNull;
+      if (from == null) break;
+
+      final to = current.legalMoves[from]!.first;
+      if (to == null) break;
       final move = NormalMove(from: from, to: to);
       if (!current.isLegal(move)) break;
       moves.add(move);

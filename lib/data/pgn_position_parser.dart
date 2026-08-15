@@ -9,6 +9,7 @@ library;
 
 import 'package:chess_trainer/domain/errors.dart';
 import 'package:chess_trainer/domain/library/import_outcome.dart';
+import 'package:chess_trainer/domain/position/evaluation.dart';
 import 'package:chess_trainer/domain/position/training_position.dart';
 import 'package:chess_trainer/domain/tree/move_node.dart';
 import 'package:chess_trainer/domain/tree/variation_tree.dart';
@@ -53,7 +54,18 @@ const _standardVariants = {'standard', 'from position', 'chess', '?'};
 /// - **a non-standard `[Variant]`** — [RejectionReason.unsupportedVariant].
 /// - **an illegal move** — [RejectionReason.illegalMove]. The entry is rejected
 ///   whole rather than truncated.
-/// - **no moves at all** — [RejectionReason.noMoves].
+/// - **no legal move from the starting position** —
+///   [RejectionReason.noLegalMoves]. Checkmate, stalemate, or any other
+///   terminal position: there is nothing to calculate, and importing one would
+///   open a board the player cannot move on.
+///
+/// **An entry with no moves is no longer rejected** (005 FR-001). It used to be:
+/// there was no solution to compare an analysis against, which was true of an
+/// app whose only standard of correctness was an author's line. An engine now
+/// supplies one where the author did not, so the position is imported with an
+/// empty solution and the import service fills it in. Setting up a position and
+/// stopping is how a player authors an exercise for themselves, and this app
+/// used to refuse exactly that.
 ///
 /// Loading the bundled positions still lets this escape and fail the whole load:
 /// a malformed sample must never reach a session, where it would look like a bug
@@ -89,11 +101,15 @@ TrainingPosition trainingPositionFromGame(
     );
   }
 
-  if (solution.isEmpty) {
+  // Asked of `dartchess`, never of the engine. The constitution is explicit
+  // since v1.1.0: the engine must not be consulted about legality, terminal
+  // positions, or anything dartchess can answer — one question, one source of
+  // truth (Principle III, 005 research D9).
+  if (initialPosition.isGameOver) {
     throw PositionParseError(
-      'the PGN records no moves',
+      'the position has no legal move, so there is nothing to calculate',
       positionId: id,
-      reason: RejectionReason.noMoves,
+      reason: RejectionReason.noLegalMoves,
     );
   }
 
@@ -102,6 +118,11 @@ TrainingPosition trainingPositionFromGame(
     initialPosition: initialPosition,
     solution: solution,
     metadata: _parseMetadata(game.headers),
+    // An entry with no author's moves arrives here with an empty solution and
+    // `none`. The import service is what asks an engine and upgrades it to
+    // `engine` — this function does no I/O and knows no engine exists.
+    solutionSource:
+        solution.isEmpty ? SolutionSource.none : SolutionSource.author,
   );
 }
 

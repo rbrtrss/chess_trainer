@@ -1,6 +1,7 @@
 import 'package:chess_trainer/data/pgn_position_parser.dart';
 import 'package:chess_trainer/domain/errors.dart';
 import 'package:chess_trainer/domain/library/import_outcome.dart';
+import 'package:chess_trainer/domain/position/evaluation.dart';
 import 'package:chess_trainer/domain/tree/move_path.dart';
 import 'package:chess_trainer/domain/tree/variation_tree.dart';
 import 'package:dartchess/dartchess.dart';
@@ -181,13 +182,64 @@ void main() {
       expect(metadata.isEmpty, isFalse);
     });
 
-    test('a PGN with no moves fails the parse', () {
+    test('a PGN with no moves now parses, with no solution and no author '
+        '(005 FR-001)', () {
+      // The rejection this feature exists to remove. Setting up a position and
+      // stopping is how a player authors an exercise for themselves, and until
+      // 005 the app refused exactly that — on a real device, on 2026-08-15,
+      // with "1 entry has no moves, so there is no solution".
+      final position =
+          parseTrainingPosition('[Title "Empty"]\n$_initialFen*', id: 'empty');
+
+      expect(position.solution.isEmpty, isTrue);
+      expect(position.solutionSource, SolutionSource.none,
+          reason: 'the parser does no I/O and knows no engine exists; the '
+              'import service is what upgrades this to `engine`');
+      expect(position.evaluation, isNull);
+      expect(position.initialPosition.fen, contains('rnbqkbnr'));
+    });
+
+    test('a position with moves is still authored', () {
+      final position = parseTrainingPosition(
+        '[Title "Has a line"]\n$_initialFen 1. e4 e5 *',
+        id: 'authored',
+      );
+
+      expect(position.solutionSource, SolutionSource.author);
+      expect(position.evaluation, isNull,
+          reason: 'where an author said what they intended, the engine is not '
+              'consulted and nothing is stored (FR-011)');
+    });
+
+    test('a checkmate position is rejected — nothing to calculate (FR-004)',
+        () {
+      // New in 005, inside a feature whose purpose is to reject less. It stays
+      // because the alternative is a position that imports and then opens a
+      // board the player cannot move on: a trap found after training starts,
+      // rather than at import where the report can explain it.
       expect(
-        () => parseTrainingPosition('[Title "Empty"]\n$_initialFen*', id: 'empty'),
+        () => parseTrainingPosition(
+          '[FEN "rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3"]\n*',
+          id: 'mated',
+        ),
         throwsA(isA<PositionParseError>().having(
           (error) => error.reason,
           'reason',
-          RejectionReason.noMoves,
+          RejectionReason.noLegalMoves,
+        )),
+      );
+    });
+
+    test('a stalemate position is rejected for the same reason', () {
+      expect(
+        () => parseTrainingPosition(
+          '[FEN "7k/5Q2/6K1/8/8/8/8/8 b - - 0 1"]\n*',
+          id: 'stalemated',
+        ),
+        throwsA(isA<PositionParseError>().having(
+          (error) => error.reason,
+          'reason',
+          RejectionReason.noLegalMoves,
         )),
       );
     });
