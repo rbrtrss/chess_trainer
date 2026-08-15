@@ -68,7 +68,8 @@ class _ReasonGroup extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '$count ${count == 1 ? 'entry' : 'entries'} ${reason.summary}.',
+            '$count ${count == 1 ? 'entry' : 'entries'} '
+            '${reason.summaryFor(count)}.',
             key: Key('rejection-group-${reason.name}'),
             style: theme.textTheme.bodyMedium
                 ?.copyWith(fontWeight: FontWeight.w600),

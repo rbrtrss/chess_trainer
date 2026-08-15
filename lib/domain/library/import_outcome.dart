@@ -42,15 +42,31 @@ enum RejectionReason {
 }
 
 /// A short, player-facing description of a reason, for grouping in the report.
+///
+/// Takes the count because the report reads "$count entries $summary", and a
+/// single form cannot serve both: "1 entry has no moves" and "3 entries have no
+/// moves" need different verbs. The first device run of this feature produced
+/// "3 entries starts from the standard position", which no test caught — they
+/// asserted the group existed, not that it read as English.
 extension RejectionReasonText on RejectionReason {
-  String get summary => switch (this) {
-        RejectionReason.noStartingPosition =>
-          'starts from the standard position, so there is no position to train',
-        RejectionReason.noMoves => 'has no moves, so there is no solution',
-        RejectionReason.illegalMove => 'contains a move that is not legal',
-        RejectionReason.unsupportedVariant => 'is not standard chess',
-        RejectionReason.unparseable => 'could not be read as PGN',
-      };
+  String summaryFor(int count) {
+    final many = count != 1;
+    return switch (this) {
+      RejectionReason.noStartingPosition => many
+          ? 'start from the standard position, so there is no position to train'
+          : 'starts from the standard position, so there is no position to '
+              'train',
+      RejectionReason.noMoves => many
+          ? 'have no moves, so there is no solution'
+          : 'has no moves, so there is no solution',
+      RejectionReason.illegalMove => many
+          ? 'contain a move that is not legal'
+          : 'contains a move that is not legal',
+      RejectionReason.unsupportedVariant =>
+        many ? 'are not standard chess' : 'is not standard chess',
+      RejectionReason.unparseable => 'could not be read as PGN',
+    };
+  }
 }
 
 /// One entry that did not become a position.

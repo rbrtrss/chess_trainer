@@ -212,7 +212,7 @@ longer be trained while the played session still shows its full review.
 - [X] T065 [P] Update the fixture-fetching and troubleshooting notes in `specs/003-position-import/quickstart.md` with anything learned while implementing
 - [ ] T066 Work through every row of the [lichess-api error contract](./contracts/lichess-api.md#error-contract) on device — offline, `401`, `429`, `404`, cancelled login, revoked token, killed mid-fetch, storage full — confirming each names what happened and leaves no partial collection (SC-011, quickstart scenario 6)
 - [ ] T067 Measure a 300-chapter import on device against SC-007; if the isolate transfer cost dominates, apply the recorded fallback of sending PGN strings back instead of parsed trees (research D15)
-- [ ] T068 Install this build over a 002 build on device and confirm history survives and the samples appear (FR-040, quickstart scenario 10)
+- [X] T068 Install this build over a 002 build on device and confirm history survives and the samples appear (FR-040, quickstart scenario 10)
 - [ ] T069 Run the full offline pass: everything except import and login with networking disabled, plus packet inspection confirming zero requests to `lichess.org` during a training session (SC-009, quickstart scenario 8)
 - [X] T070 Run `dart analyze` and the whole suite with `flutter test` — both clean. `dart format .` deliberately not run; see "What was done, and what was not"
 
@@ -315,12 +315,62 @@ Task: "Create test/data/lichess_auth_test.dart covering PKCE, expiry and no-refr
 
 Recorded at implementation time rather than left to be inferred from the checkboxes.
 
-### Not done: everything that needs a phone
+### The device pass, 2026-08-14, TECNO KJ6 (Android 13)
 
-No Android device was attached while this was implemented, so six tasks could not be carried
-out and are **left unchecked on purpose**: T034, T052, T066, T067, T068, T069. Each is a
-manual pass on hardware, and none of them is the kind of thing to mark off on the strength of
-a test suite.
+Run after the fact, once a device was attached. **T068 passed and is checked.** The rest are
+partly verified and stay unchecked, with exactly what was covered recorded here.
+
+**T068 — upgrade over a 002 build: PASS.** The device already had the 002 build from
+2026-08-13 carrying one real session (14 August 2026, 21:58, 3 positions). `adb install -r`
+over it: the v1 → v2 migration ran on real data, the session is still in the history, and its
+review still renders the board, the comparison, the played line and the author's comments —
+which also exercises the metadata codec's backward-compatible path against rows written
+before the header bag existed. The samples appeared as a seeded collection.
+
+**Verified, though their tasks stay unchecked because each covers more:**
+
+- *Lichess fetch, end to end (part of T034/T052).* A public study imported by pasting its
+  address, with no login: 7 positions added and 4 rejected, matching the fixture counts
+  exactly. Trained and reviewed; the solution's nine moves replay correctly. This is the first
+  time the network path ran against the real service.
+- *Principle I on real content (SC-003, SC-004).* A chapter from a real study — carrying
+  `[StudyName]`, `[ChapterName]`, `[Event]`, player names and a result — showed only "1 of 3",
+  "White to move", the board, the move controls and "Done". Confirmed by reading the
+  **accessibility tree**, which is everything a screen reader would announce, rather than by
+  eye: nothing from the study, and no collection name, appears in it.
+- *Two rows of the error contract (T066).* A malformed address produced "That is not a Lichess
+  study address. It should look like lichess.org/study/abcd1234." with no request made. With
+  the radios off, an import produced "Importing from Lichess needs a connection. Everything
+  already imported still works offline."
+- *Offline training on imported content (SC-010, part of T069).* With `Active default network:
+  none`, the app opened without a spinner and a session on the imported Lichess collection ran
+  normally.
+
+**Still not verified, and why:**
+
+- **The login (T052).** It needs the account holder's Lichess credentials in a browser. Not
+  something to do on someone's behalf.
+- **The file-picker path (T034).** Distinct code — `file_selector` through the Storage Access
+  Framework — and unexercised on device. Covered by tests, not by hardware.
+- **T067 on device.** Measured on the development machine only (297 positions in 61 ms).
+- **The remaining error rows (T066)** — 401, 429, 404, a connection killed mid-fetch — and
+  **packet-level confirmation for T069.**
+
+### What the pass found that the tests did not
+
+The import report rendered **"3 entries starts from the standard position"**. Singular verb,
+plural count. Every test passed: they asserted the group existed and named the right reason,
+not that the line was a sentence. Fixed by making the summary count-aware, with a regression
+test that asserts both forms and rejects the broken ones. It is the one defect the whole
+device pass produced, and it is exactly the kind a test suite is bad at.
+
+### A note on how this pass was driven
+
+The app was driven over `adb` with taps and screenshots. Twice, a back-press left the app and
+the next screenshot or accessibility dump captured the device owner's personal messages
+instead. Those artifacts were deleted immediately, on the host and on the device, and the pass
+was stopped at the second occurrence rather than continued. Anything driven this way should
+either keep the app in the foreground explicitly or be driven by someone looking at the screen.
 
 What was done instead, so the gap is as small as it can be without a device:
 

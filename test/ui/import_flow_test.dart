@@ -143,6 +143,22 @@ void main() {
 
       expect(find.textContaining('• Chapter 8'), findsOneWidget);
     });
+
+    testWidgets('the grouped lines read as English at any count',
+        (tester) async {
+      // The first device run showed "3 entries starts from the standard
+      // position". Every test passed: they asserted the group existed, not
+      // that it was a sentence. A report a player cannot read is a report that
+      // makes the app look broken, which for this feature is the difference
+      // between "9 chapters were unusable" and "this app does not work".
+      await pumpImport(tester, pgn: fixture('study_mixed_chapters.pgn'));
+      await runImport(tester);
+
+      expect(find.textContaining('3 entries start from'), findsOneWidget);
+      expect(find.textContaining('1 entry has no moves'), findsOneWidget);
+      expect(find.textContaining('entries starts'), findsNothing);
+      expect(find.textContaining('entry have'), findsNothing);
+    });
   });
 
   group('a variant study is refused with its reason (FR-006)', () {
