@@ -291,8 +291,15 @@ no longer be trained while the played session still shows its full review.
 - **FR-005**: System MUST carry an entry's comments and annotations through to the position, for
   display at review.
 - **FR-006**: System MUST reject, with a stated reason, an entry that cannot be trained: one
-  whose moves are illegal or unparseable, one with no moves at all, one with no starting
+  whose moves are illegal or unparseable, ~~one with no moves at all,~~ one with no starting
   position, or one in a variant other than standard chess.
+  > **Superseded in one clause by feature 005 (FR-001), 2026-08-15.** An entry with a position
+  > and no moves is now imported, not rejected: an engine supplies the standard of correctness
+  > the author did not. This requirement was right for an app whose only standard was an
+  > author's line, and it refused the most natural way a player authors an exercise for
+  > themselves — which is how the gap was found, on a real device, with a study made by hand.
+  > Every other rejection in this requirement stands unchanged, and feature 005 adds one:
+  > a position with no legal move at all.
 - **FR-007**: System MUST import the usable entries of a source even when others are rejected,
   and MUST report both outcomes together — how many positions were added, and which entries were
   rejected and why.

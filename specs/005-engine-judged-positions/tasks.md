@@ -152,11 +152,11 @@ The first two tasks are corrections the constitution's amendment review identifi
 in the source explain a rule by asserting that no engine exists. After this feature they are
 false, and a false comment is worse than none.
 
-- [ ] T038 [P] Correct the comment in `lib/domain/attempt/comparison.dart` — "no engine evaluates anything here, so this type can say where two lines parted company and nothing whatever about which was better". The rule it explains is unchanged; the reason is not. The self-grade now outranks the comparison **by choice rather than by incapacity**
-- [ ] T039 [P] Correct the comment in `lib/ui/review/grade_buttons.dart` — "without an engine there is nothing here that could make that suggestion honestly". An engine now exists and still must not make that suggestion, which is a stronger statement and needs saying
-- [ ] T040 [P] Record in `specs/003-position-import/spec.md` that FR-006's "no moves at all" clause is superseded by 005 FR-001, so a later reader is not misled by a requirement the app deliberately stopped honouring
-- [ ] T041 [P] Update `README.md`: the app now judges positions an author left unsolved, it carries an engine, what that cost in install size, and that the engine never runs while a session does
-- [ ] T042 Run `dart analyze` and `flutter test` — both clean, and the suite larger than the T001 baseline
+- [X] T038 [P] Correct the comment in `lib/domain/attempt/comparison.dart` — "no engine evaluates anything here, so this type can say where two lines parted company and nothing whatever about which was better". The rule it explains is unchanged; the reason is not. The self-grade now outranks the comparison **by choice rather than by incapacity**
+- [X] T039 [P] Correct the comment in `lib/ui/review/grade_buttons.dart` — "without an engine there is nothing here that could make that suggestion honestly". An engine now exists and still must not make that suggestion, which is a stronger statement and needs saying
+- [X] T040 [P] Record in `specs/003-position-import/spec.md` that FR-006's "no moves at all" clause is superseded by 005 FR-001, so a later reader is not misled by a requirement the app deliberately stopped honouring
+- [X] T041 [P] Update `README.md`: the app now judges positions an author left unsolved, it carries an engine, what that cost in install size, and that the engine never runs while a session does
+- [X] T042 Run `dart analyze` and `flutter test` — both clean, and the suite larger than the T001 baseline
 - [ ] T043 Verify on device: quickstart scenario 7 — import twenty hand-made positions and time it, recorded beside 003's figure of 330 authored positions in under three seconds. Starting a session must never wait on any of it (SC-007)
 - [ ] T044 Verify on device: quickstart scenario 8 — with airplane mode on, import a **file** containing a no-moves position, then train and review it. The engine's line is there and no network was needed at any point
 - [ ] T045 Verify on device: quickstart scenario 9 — a build whose evaluator returns null: the position still imports, is still trainable, and its review says no evaluation could be produced (FR-010, SC-009)

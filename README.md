@@ -45,6 +45,25 @@ not import today.
 Connecting stays optional and stays quiet: the app trains on bundled samples and on PGN files
 with no account at all, and a player who never connects is never asked to.
 
+Feature 005, *positions with no author's line*, is in progress: a study chapter that sets up a
+position and stops is now importable. Until now the app refused exactly that — "this entry has
+no moves, so there is no solution" — which was true of an app whose only standard of
+correctness was an author's line, and which refused the most natural way a player authors an
+exercise for themselves. Where nobody said what the answer is, **Stockfish does**, and the
+review says plainly that the line came from an engine rather than a person.
+
+That makes this the first feature to put an engine in the app, and it costs 45 MB of install:
+the arm64 download goes from 34.9 MB to 79.7 MB, almost all of it one embedded neural network.
+Embedding it was chosen over fetching it on first use, which would have cost 1.5 MB, so that
+the app can evaluate positions on a phone that has never been online — this feature adds no
+network path at all, which is the first time that has been true of a content feature since 002.
+
+**The engine runs during import and at no other time.** Not while you are calculating, not in
+the background, not on a timer. That is a constitutional requirement rather than a performance
+choice: a search running beside a player who is thinking leaks through latency, battery and
+heat, and none of those is something a test can see. After an import finishes there is no
+engine process at all, which is what makes the guarantee structural instead of careful.
+
 There is still no scheduling, and nothing anywhere shows how a position has gone for you
 before. The grades are recorded; displaying them across sessions is the one thing that would
 put evidence about a position in front of a player who is still calculating, so it is left to

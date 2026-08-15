@@ -3,10 +3,21 @@ import 'package:meta/meta.dart';
 
 /// How far the user's primary line agreed with the solution's main line.
 ///
-/// **Advisory only** (FR-027). The self-grade outranks this, and the reason is
-/// structural rather than polite: no engine evaluates anything here, so this
-/// type can say where two lines parted company and nothing whatever about
-/// which was better.
+/// **Advisory only** (001 FR-027). The self-grade outranks this, and it still
+/// does after feature 005 — but the reason changed, and the change is worth
+/// stating because the old one is written into feature 001's specification.
+///
+/// This used to say: no engine evaluates anything here, so this type can say
+/// where two lines parted company and nothing whatever about which was better.
+/// That was true of an app that had no engine. It has one now, and the
+/// solution one of these is compared against may be an engine's own line.
+///
+/// This type still says only where two lines parted, because that is all it is
+/// for and all it computes. What changed is that the self-grade's authority
+/// now rests on **a choice rather than on incapacity** — the app could offer a
+/// verdict and does not — which is a stronger position and a harder one to
+/// keep. Anything that starts deriving a grade from this, or from an
+/// evaluation, is undoing the decision rather than filling a gap.
 @immutable
 class ComparisonResult {
   const ComparisonResult({

@@ -5,8 +5,17 @@ import 'package:flutter/material.dart';
 ///
 /// The four buttons are styled identically and none is preselected. Suggesting
 /// one from the match indicator would make the measurement into the verdict,
-/// which is the thing this feature exists not to do — and without an engine
-/// there is nothing here that could make that suggestion honestly.
+/// which is the thing this feature exists not to do.
+///
+/// That used to be underwritten by incapacity: without an engine there was
+/// nothing here that could make such a suggestion honestly. **Feature 005
+/// removed that excuse.** An engine now judges positions their author left
+/// unsolved, and it would be entirely possible to preselect "Missed it" for a
+/// line the engine scores badly.
+///
+/// It must not. The player's own judgement of how the calculation went is the
+/// record that counts, and an app that grades for them is measuring something
+/// else — how close they came to a machine, rather than how well they thought.
 class GradeButtons extends StatelessWidget {
   const GradeButtons({super.key, required this.selected, required this.onGrade});
 
