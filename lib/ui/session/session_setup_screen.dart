@@ -2,6 +2,7 @@ import 'package:chess_trainer/data/session_repository.dart';
 import 'package:chess_trainer/domain/errors.dart';
 import 'package:chess_trainer/domain/library/collection.dart';
 import 'package:chess_trainer/domain/position/training_position.dart';
+import 'package:chess_trainer/ui/account/account_bar.dart';
 import 'package:chess_trainer/ui/history/history_screen.dart';
 import 'package:chess_trainer/ui/library/collection_list_screen.dart';
 import 'package:chess_trainer/ui/library/import_screen.dart';
@@ -117,6 +118,10 @@ class _SessionSetupScreenState extends ConsumerState<SessionSetupScreen> {
           ),
         ],
       ),
+      // Pinned below the body, so it survives both of this screen's states —
+      // the setup form and the empty library — without being written twice, and
+      // does not scroll away (FR-001, 004 research D4).
+      bottomNavigationBar: const AccountBar(),
       body: SafeArea(
         child: positions.when(
           loading: () => const Center(child: CircularProgressIndicator()),

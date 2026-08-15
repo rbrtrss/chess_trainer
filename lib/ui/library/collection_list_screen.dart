@@ -4,7 +4,6 @@
 library;
 
 import 'package:chess_trainer/domain/library/collection.dart';
-import 'package:chess_trainer/ui/library/connection_controller.dart';
 import 'package:chess_trainer/ui/library/import_screen.dart';
 import 'package:chess_trainer/ui/library/library_controller.dart';
 import 'package:chess_trainer/ui/session/session_controller.dart';
@@ -57,8 +56,10 @@ class CollectionListScreen extends ConsumerWidget {
                 ),
               for (final collection in all)
                 _CollectionTile(collection: collection),
-              const Divider(),
-              const _ConnectionTile(),
+              // The Lichess account used to sit below a divider here. It moved
+              // to the home screen in feature 004: the account is a property of
+              // the app, not of the library, and two controls for one account
+              // invite disagreement about which is authoritative (FR-012).
             ],
           ),
         ),
@@ -214,40 +215,3 @@ class _CollectionTile extends ConsumerWidget {
   }
 }
 
-/// The Lichess account, and how to forget it (FR-022).
-class _ConnectionTile extends ConsumerWidget {
-  const _ConnectionTile();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final connection = ref.watch(lichessConnectionProvider);
-
-    return connection.when(
-      loading: () => const ListTile(title: Text('Lichess')),
-      error: (_, _) => const ListTile(title: Text('Lichess')),
-      data: (connected) {
-        if (connected == null) {
-          return const ListTile(
-            key: Key('lichess-disconnected'),
-            title: Text('Lichess'),
-            subtitle: Text('Not connected'),
-          );
-        }
-        return ListTile(
-          key: const Key('lichess-connected'),
-          title: const Text('Lichess'),
-          subtitle: Text('Connected as ${connected.username}'),
-          trailing: TextButton(
-            key: const Key('disconnect-lichess'),
-            onPressed: () async {
-              await ref.read(connectionControllerProvider).logOut();
-              // Imported collections are untouched: they are local content
-              // now, not a view onto the account.
-            },
-            child: const Text('Disconnect'),
-          ),
-        );
-      },
-    );
-  }
-}

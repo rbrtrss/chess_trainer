@@ -82,6 +82,10 @@ void main() {
       await tryImport(tester);
 
       expect(messageOn(tester), contains('Log in again'));
+      expect(messageOn(tester), contains('home screen'),
+          reason: 'feature 004 moved the login there, and a message that says '
+              '"log in" without saying where leaves the player looking for a '
+              'button that is no longer in front of them (004 research D8)');
     });
 
     testWidgets('not logged in, for a private study', (tester) async {
@@ -89,7 +93,10 @@ void main() {
       await pumpImport(tester);
       await tryImport(tester);
 
-      expect(messageOn(tester), contains('log in'));
+      expect(messageOn(tester), contains('connected Lichess account'));
+      expect(messageOn(tester), contains('home screen'),
+          reason: 'as above — import no longer offers a login, so the message '
+              'has to say where the account is (004 FR-017)');
     });
 
     testWidgets('rate limited says how long', (tester) async {

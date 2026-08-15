@@ -33,15 +33,28 @@ at, which for real studies means every "analyse this game" chapter: Lichess omit
 header for a chapter that starts from the opening position, so the import report explains
 that case in the player's own words rather than listing it nine times.
 
+Feature 004, *Lichess login on the home screen*, is implemented: the account is a property of
+the app rather than of importing. Whether a Lichess account is connected, which one, and how
+to connect or disconnect are all on the first screen, so you can log in before you need to
+and find out where you stand without starting an import you may not want to make. Import
+assumes the account and no longer offers to establish one. A login that has run out now says
+so, and whose it was — until this feature an expired login was indistinguishable from never
+having logged in, which left no explanation for why a study that imported last month does
+not import today.
+
+Connecting stays optional and stays quiet: the app trains on bundled samples and on PGN files
+with no account at all, and a player who never connects is never asked to.
+
 There is still no scheduling, and nothing anywhere shows how a position has gone for you
 before. The grades are recorded; displaying them across sessions is the one thing that would
 put evidence about a position in front of a player who is still calculating, so it is left to
 the feature that has to argue for it.
 
 See [`specs/001-training-session-core/`](specs/001-training-session-core/),
-[`specs/002-session-persistence/`](specs/002-session-persistence/) and
-[`specs/003-position-import/`](specs/003-position-import/) for the specifications, plans, and
-task breakdowns.
+[`specs/002-session-persistence/`](specs/002-session-persistence/),
+[`specs/003-position-import/`](specs/003-position-import/) and
+[`specs/004-home-lichess-login/`](specs/004-home-lichess-login/) for the specifications,
+plans, and task breakdowns.
 
 ## The network, and what it cost
 
@@ -59,14 +72,17 @@ recovered.** What replaces it is weaker on purpose, and tested rather than assum
   every method fails the test on contact, with a control case proving the client really is
   reachable when the player *does* ask for an import;
 - every request is the direct result of the player asking. Nothing fetches on launch, on a
-  timer, in the background, or as a side effect of starting a session.
+  timer, in the background, or as a side effect of starting a session — including the account
+  shown on the home screen since feature 004, which is read from local storage by an object
+  that holds no HTTP client and can therefore be shown at startup without weakening any of
+  the above.
 
 Two consequences worth knowing:
 
 - Lichess issues long-lived tokens and **no refresh tokens**, so an expired login is presented
-  as "log in again". There is no renewal code anywhere, and a test asserts that no file even
-  mentions one — a method that cannot work is worse than a missing one, because it invites a
-  caller.
+  as "log in again", on the home screen, worked out from the stored date without asking
+  anyone. There is no renewal code anywhere, and a test asserts that no file even mentions
+  one — a method that cannot work is worse than a missing one, because it invites a caller.
 - The access token lives in `flutter_secure_storage`, and the app now sets
   `android:allowBackup="false"` so it cannot leave the device inside a Google backup. That
   turns backups off for the training database too: your sessions survive an app *update*, but

@@ -32,6 +32,16 @@ abstract interface class CredentialStore {
   });
 
   Future<void> clear();
+
+  /// Deletes the token and keeps the username and expiry (004 research D3).
+  ///
+  /// This is what expiry does, and it is not the same as [clear]. Feature 003's
+  /// rule was that the app never holds a token it knows is dead, and it still
+  /// holds: after this, [readToken] returns null, so no request that is certain
+  /// to fail can be made. What survives is a name and a date — neither is a
+  /// secret, neither grants anything, and together they are what lets the app
+  /// say *whose* login ran out instead of pretending nobody ever logged in.
+  Future<void> expireToken();
 }
 
 class SecureCredentialStore implements CredentialStore {
@@ -54,7 +64,13 @@ class SecureCredentialStore implements CredentialStore {
     if (username == null || expiry == null) return null;
 
     final expiresAt = DateTime.tryParse(expiry);
-    if (expiresAt == null) return null;
+    if (expiresAt == null) {
+      // A credential whose expiry cannot be read is not a credential: nothing
+      // can decide whether it is live. Leaving it would orphan a usable token
+      // behind an account the app reports as disconnected, so it goes.
+      await clear();
+      return null;
+    }
 
     return LichessConnection(username: username, expiresAt: expiresAt);
   }
@@ -77,6 +93,9 @@ class SecureCredentialStore implements CredentialStore {
     await _storage.delete(key: _expiryKey);
     await _storage.delete(key: _usernameKey);
   }
+
+  @override
+  Future<void> expireToken() => _storage.delete(key: _tokenKey);
 }
 
 /// A credential store in memory, for tests and for the widget tests that must
@@ -106,5 +125,10 @@ class InMemoryCredentialStore implements CredentialStore {
   Future<void> clear() async {
     _token = null;
     _connection = null;
+  }
+
+  @override
+  Future<void> expireToken() async {
+    _token = null;
   }
 }

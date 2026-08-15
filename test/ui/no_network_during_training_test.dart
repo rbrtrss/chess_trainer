@@ -58,7 +58,7 @@ void main() {
     addTearDown(db.close);
   });
 
-  Future<void> pumpApp(WidgetTester tester) async {
+  Future<void> pumpApp(WidgetTester tester, {bool loggedIn = false}) async {
     await tester.binding.setSurfaceSize(const Size(400, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -68,6 +68,15 @@ void main() {
       loadSamples: () async => positions(),
     );
 
+    final credentials = InMemoryCredentialStore();
+    if (loggedIn) {
+      await credentials.write(
+        token: 'lio_TESTTOKEN',
+        expiresAt: DateTime.utc(2099),
+        username: 'roberto',
+      );
+    }
+
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -75,7 +84,7 @@ void main() {
           sessionRepositoryProvider.overrideWithValue(
             inMemorySessionRepository(),
           ),
-          credentialStoreProvider.overrideWithValue(InMemoryCredentialStore()),
+          credentialStoreProvider.overrideWithValue(credentials),
           // Any contact with either of these fails the test.
           lichessApiProvider.overrideWithValue(api),
           lichessAuthProvider.overrideWithValue(auth),
@@ -101,6 +110,25 @@ void main() {
     // Including the seeding of the samples, which happens on first run and is
     // the most tempting place to "just check for updates".
     expectNoContact('startup');
+  });
+
+  testWidgets('opening the app while logged in makes none either',
+      (tester) async {
+    // Feature 004 put the account on the home screen, so the app now reads
+    // account state on the launch path and shows a username on the first
+    // screen. **This test was not relaxed to allow that.** `_ExplodingAuth`
+    // still fails on every method it has; the read goes through
+    // `LichessAccountReader`, which is built on the credential store and holds
+    // no client (004 research D1, FR-004).
+    //
+    // If a future change makes this test need an exception, the exception is
+    // the bug.
+    await pumpApp(tester, loggedIn: true);
+
+    expect(find.textContaining('roberto'), findsOneWidget,
+        reason: 'the account must actually be on screen — otherwise this test '
+            'passes by not exercising the thing it is about');
+    expectNoContact('startup while logged in');
   });
 
   testWidgets('a whole session — setup, training, commits, review — makes none',
@@ -220,6 +248,9 @@ class _ExplodingAuth implements LichessAuth {
   @override
   Future<void> logOut() async => _explode('logOut');
 
-  @override
-  Future<LichessConnection?> current() async => _explode('current');
+  // No `current()` to answer, and that is the point. Until feature 004 this
+  // fake had to explode on a method that only read local storage; the account
+  // is now read through `LichessAccountReader`, so every method that remains
+  // here is genuinely a network call and every one of them still explodes
+  // (004 research D1).
 }

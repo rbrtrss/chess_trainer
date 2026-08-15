@@ -78,12 +78,16 @@ abstract interface class LichessAuth {
   /// Revokes server-side, then deletes the local credential (FR-022).
   Future<void> logOut();
 
-  /// The current connection, or null.
-  ///
-  /// Null **also** when the stored expiry has passed: an expired credential is
-  /// deleted rather than reported, so the app never holds a token it knows is
-  /// dead, and never makes a request that is certain to fail.
-  Future<LichessConnection?> current();
+  // There is no `current()` here, and there must never be one again.
+  //
+  // It used to answer "is anyone connected?", which is a question about local
+  // storage that has no business on the object that opens browsers and posts
+  // to `/api/token`. `LichessAccountReader` answers it now (004 research D1).
+  // The difference matters to exactly one test:
+  // `no_network_during_training_test.dart` runs the whole training flow against
+  // a fake whose every method fails on contact, and that test is what replaced
+  // the offline guarantee feature 003 gave up. While every method here is a
+  // network call, that fake needs no exceptions.
 }
 
 class PkceLichessAuth implements LichessAuth {
@@ -250,21 +254,6 @@ class PkceLichessAuth implements LichessAuth {
       // Ignored on purpose, as above.
     }
     await _credentials.clear();
-  }
-
-  @override
-  Future<LichessConnection?> current() async {
-    final connection = await _credentials.readConnection();
-    if (connection == null) return null;
-
-    if (connection.isExpiredAt(_now().toUtc())) {
-      // Checked locally as well as reacting to 401, so the common case — a
-      // token that quietly aged out — becomes an invitation rather than a
-      // request that fails for reasons the player cannot see.
-      await _credentials.clear();
-      return null;
-    }
-    return connection;
   }
 
   /// 43–128 unreserved characters, as PKCE requires.

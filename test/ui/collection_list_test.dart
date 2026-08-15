@@ -1,13 +1,11 @@
 import 'dart:math';
 
 import 'package:chess_trainer/data/lichess/credential_store.dart';
-import 'package:chess_trainer/data/lichess/lichess_auth.dart';
 import 'package:chess_trainer/data/local/database.dart';
 import 'package:chess_trainer/data/local/drift_collection_repository.dart';
 import 'package:chess_trainer/data/local/drift_session_repository.dart';
 import 'package:chess_trainer/data/pgn_position_parser.dart';
 import 'package:chess_trainer/domain/library/collection.dart';
-import 'package:chess_trainer/domain/lichess/lichess_connection.dart';
 import 'package:chess_trainer/domain/position/training_position.dart';
 import 'package:chess_trainer/domain/session/grade.dart';
 import 'package:chess_trainer/ui/library/collection_list_screen.dart';
@@ -51,10 +49,7 @@ void main() {
         positions: _positions(prefix, count),
       );
 
-  Future<void> pumpLibrary(
-    WidgetTester tester, {
-    LichessAuth? auth,
-  }) async {
+  Future<void> pumpLibrary(WidgetTester tester) async {
     await tester.binding.setSurfaceSize(const Size(500, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -65,7 +60,6 @@ void main() {
           collectionRepositoryProvider.overrideWithValue(collections),
           sessionRepositoryProvider.overrideWithValue(sessions),
           credentialStoreProvider.overrideWithValue(InMemoryCredentialStore()),
-          if (auth != null) lichessAuthProvider.overrideWithValue(auth),
         ],
         child: const MaterialApp(home: CollectionListScreen()),
       ),
@@ -240,34 +234,20 @@ void main() {
     });
   });
 
-  group('the Lichess connection (FR-022)', () {
-    testWidgets('shows as not connected when there is no login',
+  group('the Lichess account is not here any more (004 FR-012)', () {
+    testWidgets('the library offers no way to connect or disconnect',
         (tester) async {
-      await pumpLibrary(tester, auth: _StubAuth());
-
-      expect(find.byKey(const Key('lichess-disconnected')), findsOneWidget);
-    });
-
-    testWidgets('disconnecting forgets the login and keeps the collections',
-        (tester) async {
-      final auth = _StubAuth(
-        connection: LichessConnection(
-          username: 'roberto',
-          expiresAt: DateTime.utc(2027),
-        ),
-      );
+      // It used to, below a divider at the end of the list. The two tests that
+      // covered it moved to `home_account_test.dart` with the control itself;
+      // what stays here is the assertion that it did not get left behind in
+      // both places, which is the failure mode this move exists to prevent.
       await add('Imported from Lichess');
-      await pumpLibrary(tester, auth: auth);
+      await pumpLibrary(tester);
 
-      expect(find.textContaining('Connected as roberto'), findsOneWidget);
-
-      await tester.tap(find.byKey(const Key('disconnect-lichess')));
-      await tester.pumpAndSettle();
-
-      expect(auth.loggedOut, isTrue);
-      expect(await collections.listCollections(), hasLength(1),
-          reason: 'imported collections are local content now, not a view onto '
-              'the account');
+      expect(find.byKey(const Key('disconnect-lichess')), findsNothing);
+      expect(find.byKey(const Key('connect-lichess')), findsNothing);
+      expect(find.textContaining('Connected as'), findsNothing);
+      expect(find.textContaining('Not connected'), findsNothing);
     });
   });
 }
@@ -284,23 +264,3 @@ IList<TrainingPosition> _positions(String prefix, int count) => IList(
       ),
     );
 
-class _StubAuth implements LichessAuth {
-  _StubAuth({this.connection});
-
-  LichessConnection? connection;
-  bool loggedOut = false;
-
-  @override
-  Future<LichessConnection?> current() async => connection;
-
-  @override
-  Future<LichessConnection> logIn() async =>
-      connection ??
-      LichessConnection(username: 'roberto', expiresAt: DateTime.utc(2027));
-
-  @override
-  Future<void> logOut() async {
-    loggedOut = true;
-    connection = null;
-  }
-}

@@ -154,29 +154,16 @@ void main() {
       expect(connection.username, 'roberto');
     });
 
-    test('a passed expiry clears the credential and reports nothing', () async {
+    test('the stored expiry is what the reader will judge it by', () async {
+      // What happens *at* that moment — the token deleted, the name kept, the
+      // state reported as expired rather than as never-logged-in — moved to
+      // `account_reader_test.dart` with the code, in feature 004. `LichessAuth`
+      // no longer answers questions about local storage (004 research D1).
       respondWithToken(expiresIn: 60);
-      final auth = authWith();
-      await auth.logIn();
-
-      expect(await auth.current(), isNotNull);
-
-      final later = authWith(now: () => DateTime.utc(2027));
-      expect(await later.current(), isNull);
-      expect(await credentials.readToken(), isNull,
-          reason: 'an expired credential is deleted rather than reported, so '
-              'the app never holds a token it knows is dead');
-    });
-
-    test('checking expiry makes no request', () async {
-      respondWithToken();
       await authWith().logIn();
-      final before = client.requests.length;
 
-      await authWith(now: () => DateTime.utc(2027)).current();
-
-      expect(client.requests, hasLength(before),
-          reason: 'a request certain to fail is a request not worth making');
+      expect((await credentials.readConnection())?.expiresAt,
+          DateTime.utc(2026, 8, 14, 0, 1));
     });
   });
 
@@ -286,7 +273,9 @@ void main() {
       await auth.logOut();
 
       expect(await credentials.readToken(), isNull);
-      expect(await auth.current(), isNull);
+      expect(await credentials.readConnection(), isNull,
+          reason: 'disconnecting forgets the whole credential, not just the '
+              'token — unlike expiry, which keeps the name (004 research D3)');
     });
   });
 }

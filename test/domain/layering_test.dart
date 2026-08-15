@@ -103,6 +103,17 @@ void main() {
         'listCollections',
         '.headers',
         'metadata',
+        // Feature 004 put the account on the screen a session starts from,
+        // which makes account state watchable from any widget for the first
+        // time. A username is not evidence about a position, so this is not a
+        // Principle I emergency — it is the standing rule that training screens
+        // gain no affordances, written down before "logged in as roberto"
+        // occurs to anyone as helpful context (004 FR-020, research D11).
+        'LichessAccount',
+        'LichessConnection',
+        'lichessAccountProvider',
+        'connectionController',
+        'username',
       ]) {
         expect(source, isNot(contains(forbidden)),
             reason: '${file.path} reads $forbidden — the training screen must '
@@ -246,5 +257,39 @@ void main() {
     expect(offenders, isEmpty,
         reason: 'these screens import the Lichess client directly instead of '
             'going through $provider (Principle II)');
+  });
+
+  test('exactly one screen connects or disconnects the account (004 FR-012)',
+      () {
+    // Before feature 004 the login was in the study picker and the disconnect
+    // was in the collection library, so the account had two homes and neither
+    // was obvious. Both moved to the bar on the home screen.
+    //
+    // Checked as a source rule rather than by walking screens in a widget test,
+    // because walking screens proves nothing about the screen nobody thought to
+    // walk.
+    const control = 'lib/ui/account/account_bar.dart';
+    // Where the controller is defined, which is not a screen.
+    const definition = 'lib/ui/library/connection_controller.dart';
+
+    final offenders = Directory('lib/ui')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.dart'))
+        .where((file) => file.path != control && file.path != definition)
+        .where((file) {
+          final source = file.readAsStringSync();
+          return source.contains('connectionControllerProvider');
+        })
+        .map((file) => file.path)
+        .toList();
+
+    expect(File(control).existsSync(), isTrue,
+        reason: 'the one control is missing, so this rule is vacuous');
+    expect(offenders, isEmpty,
+        reason: 'these screens can connect or disconnect the Lichess account. '
+            'There is one place for that, and it is $control — two controls '
+            'for one account invite disagreement about which is authoritative '
+            '(FR-012)');
   });
 }

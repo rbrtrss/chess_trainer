@@ -6,7 +6,9 @@
 library;
 
 import 'package:chess_trainer/data/import_service.dart';
+import 'package:chess_trainer/domain/errors.dart';
 import 'package:chess_trainer/domain/library/collection.dart';
+import 'package:chess_trainer/domain/lichess/account.dart';
 import 'package:chess_trainer/ui/library/import_report_view.dart';
 import 'package:chess_trainer/ui/library/connection_controller.dart';
 import 'package:chess_trainer/ui/library/library_controller.dart';
@@ -32,6 +34,9 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
 
   /// Held so the player can confirm a duplicate without re-parsing the file.
   CollectionOrigin? _pendingOrigin;
+
+  /// Why "My studies" went nowhere, when it did (FR-017).
+  String? _studiesNeedAccount;
 
   @override
   void dispose() {
@@ -110,7 +115,26 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     _refreshLibrary();
   }
 
+  /// Opens the picker — but only with an account to pick from (FR-017).
+  ///
+  /// **Import does not offer a login** (FR-015). Navigating to a screen whose
+  /// only content is "you need to log in somewhere else" is a dead end that has
+  /// to be backed out of, so this stops here and says where the account lives
+  /// (004 research D7).
   Future<void> _pickStudy() async {
+    final account = await ref.read(lichessAccountProvider.future);
+    if (!mounted) return;
+
+    if (account is! AccountConnected) {
+      setState(() {
+        _studiesNeedAccount = account is AccountExpired
+            ? messageForNetworkError(LoginExpiredError())
+            : messageForNetworkError(NotLoggedInError());
+      });
+      return;
+    }
+
+    setState(() => _studiesNeedAccount = null);
     final picked = await Navigator.of(context).push<PickedStudy>(
       MaterialPageRoute<PickedStudy>(
         builder: (context) => const StudyPickerScreen(),
@@ -206,9 +230,15 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
               Text('From Lichess',
                   style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
+              // Reworded in feature 004. It used to say "pick one of your own
+              // after logging in", which told the player to do something this
+              // screen no longer offers and did not say where to do it — found
+              // on the device, because the tests asserted the absence of login
+              // *controls* and nobody had asserted the prose.
               const Text(
-                'Paste a study address, or pick one of your own after logging '
-                'in. A public study needs no login.',
+                'Paste a study address, or pick one of your own. A public '
+                'study needs no account; picking your own uses the Lichess '
+                'account connected on the home screen.',
               ),
               const SizedBox(height: 16),
               TextField(
@@ -240,6 +270,14 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                   ),
                 ],
               ),
+              if (_studiesNeedAccount != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _studiesNeedAccount!,
+                  key: const Key('studies-need-account'),
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
               const SizedBox(height: 32),
               if (progress != null) _ProgressView(
                 progress: progress,

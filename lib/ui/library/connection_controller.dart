@@ -9,6 +9,15 @@
 /// something here has to name the implementation; what matters is that it is
 /// exactly one file, and that no screen imports `lib/data/lichess/`.
 /// `test/domain/layering_test.dart` enforces both.
+///
+/// **Feature 004 moved the account to the home screen and left this file where
+/// it was**, under `library/`, which no longer describes what it holds. The
+/// tidy move to `lib/ui/account/` was rejected because this file also holds
+/// `StudyImporter`, which is genuinely an import concern: moving the whole file
+/// drags the study importer into an account directory, and splitting it makes
+/// *two* files that may name the network client. The layering rule currently
+/// reads "exactly one", and one rule enforced by a test is worth more than one
+/// path that reads better (004 research D9).
 library;
 
 // Named parameters cannot be private, so the initializing formals this lint
@@ -16,6 +25,7 @@ library;
 // ignore_for_file: prefer_initializing_formals
 
 import 'package:chess_trainer/data/import_service.dart';
+import 'package:chess_trainer/data/lichess/account_reader.dart';
 import 'package:chess_trainer/data/lichess/credential_store.dart';
 import 'package:chess_trainer/data/lichess/lichess_api.dart';
 import 'package:chess_trainer/data/lichess/lichess_auth.dart';
@@ -23,6 +33,7 @@ import 'package:chess_trainer/data/lichess/lichess_gateway.dart';
 import 'package:chess_trainer/data/lichess/study_link.dart';
 import 'package:chess_trainer/domain/errors.dart';
 import 'package:chess_trainer/domain/library/collection.dart';
+import 'package:chess_trainer/domain/lichess/account.dart';
 import 'package:chess_trainer/domain/lichess/lichess_connection.dart';
 import 'package:chess_trainer/ui/library/library_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -53,12 +64,19 @@ final lichessApiProvider =
 final lichessAuthProvider =
     Provider<LichessAuth>((ref) => ref.watch(lichessGatewayProvider).auth);
 
-/// Who is connected, or null.
-final lichessConnectionProvider =
-    FutureProvider<LichessConnection?>((ref) async {
-  // Reads storage only. An expired credential is deleted here rather than
-  // reported, so the app never holds a token it knows is dead (D5).
-  return ref.watch(lichessAuthProvider).current();
+/// Whether an account is connected, who as, and whether the login has run out.
+///
+/// **Built from `credentialStoreProvider`, never from `lichessAuthProvider`**,
+/// and that is not an implementation detail (004 research D1). This is the
+/// provider the home screen watches on every launch. Routing it through the
+/// object that opens browsers would force
+/// `no_network_during_training_test.dart` to let one method of that object
+/// through, and that test is the whole of what replaced the offline guarantee
+/// feature 003 gave up. Reading local storage directly keeps the guard
+/// absolute.
+final lichessAccountProvider = FutureProvider<LichessAccount>((ref) async {
+  return LichessAccountReader(credentials: ref.watch(credentialStoreProvider))
+      .read();
 });
 
 /// The account's studies, fetched when the player opens the picker.
@@ -67,9 +85,14 @@ final lichessConnectionProvider =
 /// is watched only by the study picker screen, which the player has to open.
 final myStudiesProvider = FutureProvider<List<StudySummary>>((ref) async {
   final api = ref.watch(lichessApiProvider);
-  final connection = await ref.watch(lichessConnectionProvider.future);
-  if (connection == null) throw NotLoggedInError();
-  return api.listStudies(connection.username);
+  final account = await ref.watch(lichessAccountProvider.future);
+  // An expired login is as unable to list studies as no login at all, and the
+  // message for each says something different about how to fix it.
+  return switch (account) {
+    AccountConnected(:final username) => api.listStudies(username),
+    AccountExpired() => throw LoginExpiredError(),
+    AccountDisconnected() => throw NotLoggedInError(),
+  };
 });
 
 /// Log in, log out, and the messages that go with failing to.
@@ -87,7 +110,7 @@ class ConnectionController {
   Future<LichessConnection?> logIn() async {
     try {
       final connection = await _ref.read(lichessAuthProvider).logIn();
-      _ref.invalidate(lichessConnectionProvider);
+      _ref.invalidate(lichessAccountProvider);
       return connection;
     } on LoginCancelledError {
       return null;
@@ -98,7 +121,7 @@ class ConnectionController {
   /// content now, not a view onto the account (FR-022).
   Future<void> logOut() async {
     await _ref.read(lichessAuthProvider).logOut();
-    _ref.invalidate(lichessConnectionProvider);
+    _ref.invalidate(lichessAccountProvider);
     _ref.invalidate(myStudiesProvider);
   }
 }
@@ -112,10 +135,15 @@ String messageForNetworkError(Object error) => switch (error) {
       NoConnectionError() =>
         'Importing from Lichess needs a connection. Everything already '
             'imported still works offline.',
+      // These two name an action whose place moved in feature 004. Every
+      // message here names what happened *and* what to do; one that says "log
+      // in" without saying where now leaves the player looking for a button
+      // that is no longer in front of them (research D8).
       NotLoggedInError() =>
-        'That study is not public, so it needs you to log in to Lichess.',
+        'That study is not public, so it needs a connected Lichess account. '
+            'Connect one on the home screen.',
       LoginExpiredError() =>
-        'Your Lichess login has expired. Log in again to import from it.',
+        'Your Lichess login has expired. Log in again from the home screen.',
       RateLimitedError() =>
         'Lichess is rate-limiting this app. Try again in a minute.',
       StudyNotAvailableError() =>

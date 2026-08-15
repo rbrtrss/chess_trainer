@@ -1,9 +1,17 @@
-/// Choosing one of the player's own Lichess studies (FR-013).
+/// Choosing one of the player's own Lichess studies (003 FR-013).
 ///
-/// Needs a login, because private studies are the reason this exists — a public
-/// study can be imported by pasting its address without one (FR-011).
+/// Needs a connected account, because private studies are the reason this
+/// exists — a public study can be imported by pasting its address without one
+/// (003 FR-011).
+///
+/// **It does not offer to log in** (004 FR-015). Until feature 004 this screen
+/// was where the login lived, which meant the only way to find out whether you
+/// were connected was to start an import you might not want to make. The
+/// account moved to the home screen; this screen assumes it.
 library;
 
+import 'package:chess_trainer/domain/errors.dart';
+import 'package:chess_trainer/domain/lichess/account.dart';
 import 'package:chess_trainer/ui/library/connection_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,81 +24,27 @@ class StudyPickerScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final connection = ref.watch(lichessConnectionProvider);
+    final account = ref.watch(lichessAccountProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Your Lichess studies')),
       body: SafeArea(
-        child: connection.when(
+        child: account.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) => _Message(text: messageForNetworkError(error)),
-          data: (connected) {
-            if (connected == null) return const _LogInPrompt();
-            return const _StudyList();
+          data: (connected) => switch (connected) {
+            AccountConnected() => const _StudyList(),
+            // No login button, by design (FR-015, 004 research D7): import does
+            // not establish the account, it assumes one. This state should be
+            // unreachable — the import screen checks before navigating — and it
+            // exists because a login can expire between opening this screen and
+            // reading it, and a screen that assumes it can only be reached in
+            // one state eventually gets reached in another.
+            AccountExpired() =>
+              _Message(text: messageForNetworkError(LoginExpiredError())),
+            AccountDisconnected() =>
+              _Message(text: messageForNetworkError(NotLoggedInError())),
           },
-        ),
-      ),
-    );
-  }
-}
-
-class _LogInPrompt extends ConsumerStatefulWidget {
-  const _LogInPrompt();
-
-  @override
-  ConsumerState<_LogInPrompt> createState() => _LogInPromptState();
-}
-
-class _LogInPromptState extends ConsumerState<_LogInPrompt> {
-  bool _busy = false;
-  String? _failure;
-
-  Future<void> _logIn() async {
-    setState(() {
-      _busy = true;
-      _failure = null;
-    });
-    try {
-      await ref.read(connectionControllerProvider).logIn();
-    } on Object catch (error) {
-      if (mounted) setState(() => _failure = messageForNetworkError(error));
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      key: const Key('lichess-login-prompt'),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'Log in to Lichess to see your own studies, including private '
-              'ones.',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'The app asks only to read your studies. It never posts '
-              'anything, and nothing about your sessions is sent anywhere.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12),
-            ),
-            const SizedBox(height: 24),
-            FilledButton(
-              key: const Key('log-in-to-lichess'),
-              onPressed: _busy ? null : _logIn,
-              child: const Text('Log in to Lichess'),
-            ),
-            if (_failure != null) ...[
-              const SizedBox(height: 16),
-              Text(_failure!, key: const Key('login-failure')),
-            ],
-          ],
         ),
       ),
     );
