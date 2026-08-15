@@ -1,0 +1,56 @@
+# Runs the suite the way a stranger would have to: from a clean clone.
+#
+# That is the point of this workflow rather than an incidental property of it.
+# `*.g.dart` is gitignored, so nothing generated is committed, and a fresh clone
+# genuinely cannot run `flutter test` until `build_runner` has been run. The
+# quickstarts have said so since feature 002 and nothing had ever checked it —
+# verified by hand once, on 2026-08-15, which is exactly the kind of claim that
+# rots quietly. Now it is checked on every push.
+#
+# There is no device here, and there does not need to be: the whole suite is
+# device-free by construction, and the parts that are not are recorded as device
+# tasks in each feature's tasks.md instead of being faked.
+
+name: tests
+
+on:
+  push:
+    branches: [main, '0[0-9][0-9]-*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          # Pinned to the version these features were built and verified
+          # against. Dart 3.13.0 ships with it, which is what pubspec's
+          # `sdk: ^3.13.0` asks for.
+          flutter-version: '3.47.0'
+          channel: stable
+          cache: true
+
+      - name: Dependencies
+        run: flutter pub get
+
+      # Deliberately before the analyzer as well as the tests: `dart analyze`
+      # reports the missing generated code as errors, so running it first would
+      # fail for a reason that is not a defect.
+      - name: Generate the Drift code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Analyze
+        run: dart analyze
+
+      - name: Test
+        run: flutter test
+
+      # `dart format` is deliberately *not* enforced. Features 003 and 004 both
+      # recorded that it was not run, on purpose: this codebase wraps prose in
+      # doc comments at column 80 by hand, and the formatter reflows some of it
+      # into something worse. If that ever changes, the check belongs here.
