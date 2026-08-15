@@ -89,10 +89,11 @@ confirm a session can be started on it and completed.
 - [ ] T018 [P] [US1] Create `test/data/evaluation_import_test.dart` covering [contract invariants 1–4](./contracts/evaluation-api.md#6-invariants-the-tests-hold): a no-moves entry becomes a position; a terminal position is rejected **and the evaluator is never asked about it**; an evaluator returning null leaves the rest of the import untouched and that entry trainable
 - [ ] T019 [US1] Make the import report describe an accepted no-moves entry as accepted, and remove any wording that treats it as a lesser kind of position, in `lib/ui/library/import_report_view.dart` (FR-005, FR-006)
 - [ ] T020 [P] [US1] Add to `test/ui/import_flow_test.dart`: a source mixing authored and no-line entries reports both as imported, and singles out neither
-- [ ] T021 [US1] Create `lib/data/engine/stockfish_evaluator.dart` — the one class that speaks UCI, with `Threads` at 1, the fixed depth from T003, a per-position timeout that degrades to null, the PV cap, and an `engineId` naming the engine, its version and the budget ([contracts §3](./contracts/evaluation-api.md))
-- [ ] T022 [US1] Provide the evaluator to the import service in `lib/ui/library/library_controller.dart`, keeping construction of the implementation to that one place, as `connection_controller.dart` does for the Lichess client
-- [ ] T023 [US1] Verify on device: quickstart scenario 1 — import **"Probando probando"**, the study that prompted this feature and that on 2026-08-15 imported as "1 of the 1 entries could not be used". It must now import as one trainable position, and a session on it must run to review
-- [ ] T024 [US1] Verify on device: quickstart scenario 3 — what is still refused. No `[FEN]`, a non-standard variant, illegal moves, and a checkmate position, each rejected with its reason in words
+- [ ] T021 [US1] Create `lib/data/engine/stockfish_evaluator.dart` — the one class that speaks UCI, with `Threads` at 1, depth 12, the 12-ply PV cap, and an `engineId` naming the engine, its version and the budget ([contracts §3](./contracts/evaluation-api.md)). **Every failure path yields `null`, never a pending future**: a time-boxed start, a per-position timeout, a crashed process. A hung start was actually seen on this phone on 2026-08-15 — see the contract — and an import that hangs is worse than one reporting a position it could not evaluate
+- [ ] T022 [US1] Dispose the engine when an import finishes, in `lib/data/engine/stockfish_evaluator.dart` and its caller. The package permits one instance at a time, and an engine left running after an import is an engine running while the next session starts — which Constitution III now forbids outright
+- [ ] T023 [US1] Provide the evaluator to the import service in `lib/ui/library/library_controller.dart`, keeping construction of the implementation to that one place, as `connection_controller.dart` does for the Lichess client
+- [ ] T024 [US1] Verify on device: quickstart scenario 1 — import **"Probando probando"**, the study that prompted this feature and that on 2026-08-15 imported as "1 of the 1 entries could not be used". It must now import as one trainable position, and a session on it must run to review
+- [ ] T025 [US1] Verify on device: quickstart scenario 3 — what is still refused. No `[FEN]`, a non-standard variant, illegal moves, and a checkmate position, each rejected with its reason in words
 
 **Checkpoint**: the feature's central request is answered. A position set up by hand is trainable, and the engine supplied the standard.
 
@@ -110,13 +111,13 @@ contained.
 **Independent test**: train a session mixing engine-judged and author-lined positions with the
 device offline, and confirm every screen, every wording and every timing is indistinguishable.
 
-- [ ] T025 [US3] Extend the training-directory rule in `test/domain/layering_test.dart` with `SolutionSource`, `Evaluation`, `Score`, `Evaluator`, `EngineLine` and `stockfish` — the account joined this list in 004 for the same reason (FR-020)
-- [ ] T026 [P] [US3] Create `test/ui/no_engine_during_session_test.dart` — drive setup, training, every commit, review and resume against an `Evaluator` that **fails the test on contact**, with a control case proving it would fire if called. This is the structural half of FR-019 and it is modelled exactly on `no_network_during_training_test.dart`, which is the test that replaced 003's lost offline guarantee
-- [ ] T027 [P] [US3] Add to `test/ui/no_feedback_guard_test.dart`: a session mixing an engine-judged and an authored position renders identically on the training screen — same widget tree, same semantics, same wording — compared through what a screen reader would announce rather than by eye (FR-016, SC-004)
-- [ ] T028 [P] [US3] Add to `test/ui/no_feedback_guard_test.dart`: no evaluation, score, depth, best move or the word "engine" is reachable from the training screen's widget tree or its semantics, for a position that has all of them stored (FR-018, SC-010)
-- [ ] T029 [US3] Add to `test/ui/no_network_during_training_test.dart`: an engine-judged position trains and reviews with the Lichess client still failing on contact — this feature adds no network path, and that is worth asserting rather than assuming (FR-008, SC-006)
-- [ ] T030 [US3] Verify on device: quickstart scenario 6 — with a session open, `adb shell top` shows **no engine process at all**. Not idle, absent. This is what makes FR-017 structural rather than careful
-- [ ] T031 [US3] Verify on device: quickstart scenario 4 — dump what a screen reader would announce on the training screen for both kinds of position and confirm they are indistinguishable, then time the gap between committing and the next position appearing for each (SC-005)
+- [ ] T026 [US3] Extend the training-directory rule in `test/domain/layering_test.dart` with `SolutionSource`, `Evaluation`, `Score`, `Evaluator`, `EngineLine` and `stockfish` — the account joined this list in 004 for the same reason (FR-020)
+- [ ] T027 [P] [US3] Create `test/ui/no_engine_during_session_test.dart` — drive setup, training, every commit, review and resume against an `Evaluator` that **fails the test on contact**, with a control case proving it would fire if called. This is the structural half of FR-019 and it is modelled exactly on `no_network_during_training_test.dart`, which is the test that replaced 003's lost offline guarantee
+- [ ] T028 [P] [US3] Add to `test/ui/no_feedback_guard_test.dart`: a session mixing an engine-judged and an authored position renders identically on the training screen — same widget tree, same semantics, same wording — compared through what a screen reader would announce rather than by eye (FR-016, SC-004)
+- [ ] T029 [P] [US3] Add to `test/ui/no_feedback_guard_test.dart`: no evaluation, score, depth, best move or the word "engine" is reachable from the training screen's widget tree or its semantics, for a position that has all of them stored (FR-018, SC-010)
+- [ ] T030 [US3] Add to `test/ui/no_network_during_training_test.dart`: an engine-judged position trains and reviews with the Lichess client still failing on contact — this feature adds no network path, and that is worth asserting rather than assuming (FR-008, SC-006)
+- [ ] T031 [US3] Verify on device: quickstart scenario 6 — with a session open, `adb shell top` shows **no engine process at all**. Not idle, absent. This is what makes FR-017 structural rather than careful
+- [ ] T032 [US3] Verify on device: quickstart scenario 4 — dump what a screen reader would announce on the training screen for both kinds of position and confirm they are indistinguishable, then time the gap between committing and the next position appearing for each (SC-005)
 
 **Checkpoint**: the engine is invisible from the training screen, provably and on hardware. US1 is now safe to ship.
 
@@ -135,11 +136,11 @@ that the player can still grade themselves.
 company, and the review panes already render a solution — that is research D3 paying off. What is
 left is honesty about provenance.
 
-- [ ] T032 [US2] In `lib/ui/review/tree_comparison_view.dart`, say where the solution came from when it came from an engine, and show the evaluation of the starting position — and show neither for an authored position (FR-012, FR-014, FR-015)
-- [ ] T033 [US2] Distinguish the two empty cases in `lib/ui/review/tree_comparison_view.dart`: an author who recorded no solution, and an engine that could not produce one. The existing "No solution was recorded." covers only the first (research D6, FR-010)
-- [ ] T034 [P] [US2] Add to `test/ui/review_screen_test.dart`: an engine-judged position shows the engine's line, its evaluation and its provenance; the comparison still reports where the player's line parted; the grade buttons behave identically (FR-013, FR-014)
-- [ ] T035 [P] [US2] Add to `test/ui/review_screen_test.dart`: an authored position's review is byte-identical to what it was before this feature, and a `SolutionSource.none` position reviews to the distinct empty message rather than a blank pane (FR-015, SC-009)
-- [ ] T036 [US2] Verify on device: quickstart scenario 5 — review a session containing both kinds and confirm the engine's line, the evaluation and the provenance are shown for one and absent from the other
+- [ ] T033 [US2] In `lib/ui/review/tree_comparison_view.dart`, say where the solution came from when it came from an engine, and show the evaluation of the starting position — and show neither for an authored position (FR-012, FR-014, FR-015)
+- [ ] T034 [US2] Distinguish the two empty cases in `lib/ui/review/tree_comparison_view.dart`: an author who recorded no solution, and an engine that could not produce one. The existing "No solution was recorded." covers only the first (research D6, FR-010)
+- [ ] T035 [P] [US2] Add to `test/ui/review_screen_test.dart`: an engine-judged position shows the engine's line, its evaluation and its provenance; the comparison still reports where the player's line parted; the grade buttons behave identically (FR-013, FR-014)
+- [ ] T036 [P] [US2] Add to `test/ui/review_screen_test.dart`: an authored position's review is byte-identical to what it was before this feature, and a `SolutionSource.none` position reviews to the distinct empty message rather than a blank pane (FR-015, SC-009)
+- [ ] T037 [US2] Verify on device: quickstart scenario 5 — review a session containing both kinds and confirm the engine's line, the evaluation and the provenance are shown for one and absent from the other
 
 **Checkpoint**: all three user stories are independently functional.
 
@@ -151,16 +152,16 @@ The first two tasks are corrections the constitution's amendment review identifi
 in the source explain a rule by asserting that no engine exists. After this feature they are
 false, and a false comment is worse than none.
 
-- [ ] T037 [P] Correct the comment in `lib/domain/attempt/comparison.dart` — "no engine evaluates anything here, so this type can say where two lines parted company and nothing whatever about which was better". The rule it explains is unchanged; the reason is not. The self-grade now outranks the comparison **by choice rather than by incapacity**
-- [ ] T038 [P] Correct the comment in `lib/ui/review/grade_buttons.dart` — "without an engine there is nothing here that could make that suggestion honestly". An engine now exists and still must not make that suggestion, which is a stronger statement and needs saying
-- [ ] T039 [P] Record in `specs/003-position-import/spec.md` that FR-006's "no moves at all" clause is superseded by 005 FR-001, so a later reader is not misled by a requirement the app deliberately stopped honouring
-- [ ] T040 [P] Update `README.md`: the app now judges positions an author left unsolved, it carries an engine, what that cost in install size, and that the engine never runs while a session does
-- [ ] T041 Run `dart analyze` and `flutter test` — both clean, and the suite larger than the T001 baseline
-- [ ] T042 Verify on device: quickstart scenario 7 — import twenty hand-made positions and time it, recorded beside 003's figure of 330 authored positions in under three seconds. Starting a session must never wait on any of it (SC-007)
-- [ ] T043 Verify on device: quickstart scenario 8 — with airplane mode on, import a **file** containing a no-moves position, then train and review it. The engine's line is there and no network was needed at any point
-- [ ] T044 Verify on device: quickstart scenario 9 — a build whose evaluator returns null: the position still imports, is still trainable, and its review says no evaluation could be produced (FR-010, SC-009)
-- [ ] T045 Verify on device: quickstart scenario 10 — install over a 004 build and confirm collections, positions and sessions survive and every existing position reads as `author` (FR-021, FR-022)
-- [ ] T046 Append "What was done, and what was not" to this file, recording what the device pass found, what was left unverified and why — the convention features 003 and 004 both used, and the reason their records are worth reading
+- [ ] T038 [P] Correct the comment in `lib/domain/attempt/comparison.dart` — "no engine evaluates anything here, so this type can say where two lines parted company and nothing whatever about which was better". The rule it explains is unchanged; the reason is not. The self-grade now outranks the comparison **by choice rather than by incapacity**
+- [ ] T039 [P] Correct the comment in `lib/ui/review/grade_buttons.dart` — "without an engine there is nothing here that could make that suggestion honestly". An engine now exists and still must not make that suggestion, which is a stronger statement and needs saying
+- [ ] T040 [P] Record in `specs/003-position-import/spec.md` that FR-006's "no moves at all" clause is superseded by 005 FR-001, so a later reader is not misled by a requirement the app deliberately stopped honouring
+- [ ] T041 [P] Update `README.md`: the app now judges positions an author left unsolved, it carries an engine, what that cost in install size, and that the engine never runs while a session does
+- [ ] T042 Run `dart analyze` and `flutter test` — both clean, and the suite larger than the T001 baseline
+- [ ] T043 Verify on device: quickstart scenario 7 — import twenty hand-made positions and time it, recorded beside 003's figure of 330 authored positions in under three seconds. Starting a session must never wait on any of it (SC-007)
+- [ ] T044 Verify on device: quickstart scenario 8 — with airplane mode on, import a **file** containing a no-moves position, then train and review it. The engine's line is there and no network was needed at any point
+- [ ] T045 Verify on device: quickstart scenario 9 — a build whose evaluator returns null: the position still imports, is still trainable, and its review says no evaluation could be produced (FR-010, SC-009)
+- [ ] T046 Verify on device: quickstart scenario 10 — install over a 004 build and confirm collections, positions and sessions survive and every existing position reads as `author` (FR-021, FR-022)
+- [ ] T047 Append "What was done, and what was not" to this file, recording what the device pass found, what was left unverified and why — the convention features 003 and 004 both used, and the reason their records are worth reading
 
 ---
 
@@ -181,11 +182,12 @@ false, and a false comment is worse than none.
 - T003 depends on T002 — the depth is chosen from a measurement, not from taste
 - T017 depends on T006 and T007: the import step is built and tested against the interface and the
   fake, with no engine anywhere near it
-- T021 is the only task that cannot be verified off-device, which is why it is late and small
-- T026 depends on T017 — there must be an evaluator in the import path for its absence during a
+- T021 and T022 are the only tasks that cannot be verified off-device — they are the one class that
+  speaks to the engine — which is why they are late, small, and followed immediately by T024
+- T027 depends on T017 — there must be an evaluator in the import path for its absence during a
   session to mean anything
-- T032 and T033 both edit `tree_comparison_view.dart`, so they are sequential
-- T041 depends on every code task; T042–T045 depend on T041
+- T033 and T034 both edit `tree_comparison_view.dart`, so they are sequential
+- T042 depends on every code task; T043–T046 depend on T042
 
 ## Parallel Example: Phase 2
 
@@ -201,9 +203,9 @@ Task: "Add the three columns to tables.dart"              # T008
 
 ```bash
 # Three test files, none of which the others touch:
-Task: "Create test/ui/no_engine_during_session_test.dart" # T026
-Task: "Extend no_feedback_guard_test.dart — identical"    # T027
-Task: "Extend no_feedback_guard_test.dart — unreachable"  # T028
+Task: "Create test/ui/no_engine_during_session_test.dart" # T027
+Task: "Extend no_feedback_guard_test.dart — identical"    # T028
+Task: "Extend no_feedback_guard_test.dart — unreachable"  # T029
 ```
 
 ## Implementation Strategy
@@ -212,12 +214,12 @@ Task: "Extend no_feedback_guard_test.dart — unreachable"  # T028
 per position, the design changes before anything is built on it, and D2's recorded fallback is
 where to go. That is the whole reason it is first.
 
-**MVP is Phase 1 + Phase 2 + US1 + US3** (T001–T031). Note that this is *two* user stories, not
+**MVP is Phase 1 + Phase 2 + US1 + US3** (T001–T032). Note that this is *two* user stories, not
 one: US3 is P1 because a version of US1 that leaks correctness is not a lesser version, it is one
 that must not ship. At that point a hand-made position is trainable, the engine supplied the
 standard, and the engine is provably invisible from the training screen.
 
-**Increment 2 is US2** (T032–T036): review admits where the line came from. Small, because
+**Increment 2 is US2** (T033–T037): review admits where the line came from. Small, because
 research D3 arranged for the review to need almost nothing.
 
 **Phase 6 last**, and its first three tasks are corrections to things this feature makes untrue —
@@ -228,5 +230,5 @@ the repository asserts, in three places, something the code no longer does.
 
 `stockfish_evaluator.dart` (T021) cannot be exercised off-device, because the package supports
 Android and iOS only. And nothing in `flutter test` can see latency, battery or heat, which are
-the channels an engine actually leaks through. Both are why T030 and T031 exist, and why they are
+the channels an engine actually leaks through. Both are why T031 and T032 exist, and why they are
 not optional.

@@ -120,6 +120,27 @@ exists.
 | Search | fixed **depth**, not time | A time budget returns different lines on a busy phone than on an idle one |
 | `Hash` | small, fixed | This is a phone, and one position at a time |
 
+### Starting the engine is fallible, and was seen to be
+
+While benchmarking on 2026-08-15 the harness was killed mid-run and relaunched, and it sat on
+"starting engine…" indefinitely. The cause was most likely the harness itself — it ran the engine
+from an unawaited future with no `catch`, so a thrown start timeout had nowhere to surface and the
+screen simply never changed. That is a throwaway's bug, not evidence against the package.
+
+**But it is exactly the shape of the failure that matters here**, and it happened on the first day
+anyone ran this engine on this phone. The real implementation must therefore treat starting as
+something that fails:
+
+- `start()` is time-boxed, and a start that does not complete yields `null` from `bestLine` rather
+  than a pending future. The package's own start timeout is five seconds.
+- Every path out of the engine — start, search, timeout, a crashed process — reaches the caller as
+  `null`, per invariant 1 above. An import that hangs is worse than an import that reports a
+  position it could not evaluate, because the second one is FR-010 working.
+- The engine is **disposed when the import finishes**. The package permits one instance at a time
+  and warns that isolates outlive a careless caller; an engine left running after an import is
+  also an engine running while the next session starts, which is the one thing Constitution III
+  now forbids outright.
+
 **Reproducibility is not what makes SC-008 true.** Storage is. A stored answer survives an engine
 upgrade that would otherwise change what the same position says; determinism only makes the tests
 repeatable. See research D4.
