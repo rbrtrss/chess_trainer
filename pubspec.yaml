@@ -25,6 +25,24 @@ dependencies:
   # @immutable annotations for the domain layer. BSD-3-Clause.
   meta: ^1.17.0
 
+  # The chess engine, for positions a study author set up without a solution
+  # (005 FR-007). GPL-3.0 — the same licence as this project, and published by
+  # the Lichess team who publish `dartchess` and `chessground`, adopted for the
+  # same reason.
+  #
+  # **It is the most expensive dependency here by a wide margin**, and the cost
+  # was measured before it was adopted (005 research D10): the arm64 split APK
+  # goes from 34.9 MB to 79.7 MB. Almost all of that is one embedded neural
+  # network — `libmultistockfish_sf16.so` is 39.5 MB, against 1.5 MB for the
+  # chess library without a network. Embedding was chosen deliberately over
+  # fetching the network at runtime, so that evaluation works from the moment
+  # the app is installed and this feature adds no network path at all
+  # (Constitution II).
+  #
+  # Confined to lib/data/engine/ — nothing outside it knows an engine exists,
+  # and `test/domain/layering_test.dart` enforces that.
+  multistockfish: ^0.5.0
+
   # Local persistence over SQLite (Constitution, Technology Constraints). MIT.
   # Confined to lib/data/local/ — nothing outside it knows SQLite exists.
   drift: ^2.34.3
