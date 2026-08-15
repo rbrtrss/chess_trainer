@@ -190,6 +190,28 @@ class Positions extends Table {
   /// The typed fields *and* the full header bag (003 D11).
   TextColumn get metadataJson => text()();
 
+  /// Where [solutionPgn] came from: `author`, `engine` or `none` (005 FR-007).
+  ///
+  /// Every row written before schema v3 is an `author` row, and the migration
+  /// sets them so: before feature 005 a position could only be stored if its
+  /// source had moves.
+  TextColumn get solutionSource =>
+      text().withDefault(const Constant('author'))();
+
+  /// What the engine said about the starting position, or null.
+  ///
+  /// Null for every authored position — where an author said what they
+  /// intended, the engine is not consulted (005 FR-011) — and for a position
+  /// whose evaluation could not be produced.
+  TextColumn get evaluationJson => text().nullable()();
+
+  /// Which engine and search budget produced [evaluationJson], or null.
+  ///
+  /// So that a position imported by one build is not silently compared with one
+  /// imported by another (005 research D5). The same instinct as recording the
+  /// depth on the evaluation itself, one level up.
+  TextColumn get engineId => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

@@ -1,3 +1,4 @@
+import 'package:chess_trainer/domain/position/evaluation.dart';
 import 'package:chess_trainer/domain/tree/variation_tree.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
@@ -15,6 +16,8 @@ class TrainingPosition {
     required this.initialPosition,
     required this.solution,
     this.metadata = PositionMetadata.empty,
+    this.solutionSource = SolutionSource.author,
+    this.evaluation,
   });
 
   /// Stable identifier — the bundled asset's basename for now.
@@ -23,8 +26,31 @@ class TrainingPosition {
   /// Where training starts.
   final Position initialPosition;
 
-  /// The intended answer. Its `primaryLine` is the main line.
+  /// The standard this attempt is measured against. Its `primaryLine` is the
+  /// main line.
+  ///
+  /// Feature 005 changed what this *means* without changing its type. It used
+  /// to be "what the author intended"; where an author intended nothing, it is
+  /// now an engine's preferred line, delivered in the same shape so that
+  /// review, comparison and grading need no changes at all (005 research D3).
+  /// [solutionSource] says which, and only review is allowed to care.
   final VariationTree solution;
+
+  /// Where [solution] came from (005 FR-007).
+  ///
+  /// Defaults to [SolutionSource.author], which is true of every position
+  /// stored before feature 005 and of every one parsed from a PGN with moves.
+  final SolutionSource solutionSource;
+
+  /// What the engine made of [initialPosition], or null.
+  ///
+  /// Null for every authored position (005 FR-011: where an author said what
+  /// they intended, that remains the standard and the engine is not consulted)
+  /// and for a position whose evaluation could not be produced.
+  ///
+  /// **Revealed at review, never during training.** It is the strongest piece
+  /// of evidence this app has ever held about a position.
+  final PositionEvaluation? evaluation;
 
   /// Withheld during training (FR-003), revealed at review (FR-025).
   final PositionMetadata metadata;
@@ -39,10 +65,19 @@ class TrainingPosition {
           id == other.id &&
           initialPosition == other.initialPosition &&
           solution == other.solution &&
-          metadata == other.metadata;
+          metadata == other.metadata &&
+          solutionSource == other.solutionSource &&
+          evaluation == other.evaluation;
 
   @override
-  int get hashCode => Object.hash(id, initialPosition, solution, metadata);
+  int get hashCode => Object.hash(
+        id,
+        initialPosition,
+        solution,
+        metadata,
+        solutionSource,
+        evaluation,
+      );
 
   @override
   String toString() => 'TrainingPosition($id)';

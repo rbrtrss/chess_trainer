@@ -51,7 +51,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forExecutor(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -75,6 +75,28 @@ class AppDatabase extends _$AppDatabase {
             await migrator.createTable(appSettings);
             await migrator.createIndex(collectionsByContent);
             await migrator.createIndex(positionsByCollection);
+          }
+
+          // v2 → v3: feature 005 lets a position be judged by an engine where
+          // its author left no line, so a position has to record which it is.
+          //
+          // Additions again, and nothing is re-parsed, re-evaluated or
+          // re-imported. `solution_source` defaults to `author`, which is true
+          // of every row that can already exist: before 005, a position could
+          // only be stored if its source had moves (005 data-model).
+          // `from == 2`, not `from < 3`, and the difference is not a style
+          // choice — `from < 3` fails, and `migration_test.dart` catches it.
+          //
+          // The v1 → v2 step above calls `createTable(positions)`, which builds
+          // the table from *today's* definition, columns and all. A database
+          // coming from v1 therefore already has these three, and adding them
+          // again is "duplicate column name". Only a database that was actually
+          // at v2 — created by a build that did not know about them — needs
+          // them added.
+          if (from == 2) {
+            await migrator.addColumn(positions, positions.solutionSource);
+            await migrator.addColumn(positions, positions.evaluationJson);
+            await migrator.addColumn(positions, positions.engineId);
           }
         },
         beforeOpen: (details) async {

@@ -15,7 +15,7 @@ Schema goes to **v3**. Features 002's four tables and 003's three are otherwise 
 
 ## Entities
 
-### `SolutionSource` — new, `lib/domain/position/training_position.dart`
+### `SolutionSource` — new, `lib/domain/position/evaluation.dart`
 
 An enum on the position, saying what standard the attempt is measured against.
 
@@ -28,7 +28,7 @@ An enum on the position, saying what standard the attempt is measured against.
 `none` is a state, not an error. It is what the player has when the engine could not answer, and
 FR-010 requires the position to remain trainable in it.
 
-### `Evaluation` — new, `lib/domain/position/evaluation.dart`
+### `PositionEvaluation` — new, `lib/domain/position/evaluation.dart`
 
 What the engine determined about the starting position. Pure Dart; no engine types leak into the
 domain.
@@ -134,11 +134,11 @@ Two properties of this diagram are the feature:
 
 | Reader | Sees | Must not see |
 |---|---|---|
-| `lib/domain/` | `SolutionSource`, `Evaluation`, `TrainingPosition` | the engine, the package, UCI, any of it |
+| `lib/domain/` | `SolutionSource`, `PositionEvaluation`, `TrainingPosition` | the engine, the package, UCI, any of it |
 | `lib/data/engine/` | everything about the engine | — |
 | rest of `lib/data/` | the evaluator **interface** only | the implementation |
 | `lib/ui/review/` | the solution, its source, the evaluation | — |
-| **`lib/ui/training/`** | **none of it** | `SolutionSource`, `Evaluation`, the solution, the engine |
+| **`lib/ui/training/`** | **none of it** | `SolutionSource`, `PositionEvaluation`, the solution, the engine |
 
 The last row is the one that matters, and it is enforced rather than intended:
 `layering_test.dart` already forbids the training directory from naming the solution, metadata,

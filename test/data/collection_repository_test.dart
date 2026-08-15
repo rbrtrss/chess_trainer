@@ -6,6 +6,9 @@ import 'package:chess_trainer/data/local/drift_session_repository.dart';
 import 'package:chess_trainer/domain/errors.dart';
 import 'package:chess_trainer/data/pgn_position_parser.dart';
 import 'package:chess_trainer/domain/library/collection.dart';
+import 'package:chess_trainer/domain/position/evaluation.dart';
+import 'package:chess_trainer/domain/tree/variation_tree.dart';
+import 'package:dartchess/dartchess.dart';
 import 'package:chess_trainer/domain/session/grade.dart';
 import 'package:chess_trainer/domain/position/training_position.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
@@ -50,6 +53,103 @@ void main() {
         // than a primary-key clash.
         positions: reIdded(positions ?? samples, idPrefix),
       );
+
+  group('an engine-judged position round-trips (005 FR-007, FR-021)', () {
+    test('its source, evaluation and engine survive storage', () async {
+      // The solution itself is stored exactly as an authored one is — that is
+      // research D3, and it is why review needed no changes. What is new is the
+      // three columns saying where the line came from.
+      final judged = TrainingPosition(
+        id: 'engine-judged',
+        initialPosition: samples.first.initialPosition,
+        solution: samples.first.solution,
+        solutionSource: SolutionSource.engine,
+        evaluation: const PositionEvaluation(
+          score: Centipawns(142),
+          depth: 12,
+          perspective: Side.white,
+        ),
+      );
+
+      final stored = await repository.store(
+        name: 'Hand-made',
+        origin: const FileOrigin('mine.pgn'),
+        contentHash: 'hash-engine',
+        positions: IList([judged]),
+        engineId: 'stockfish-16 depth 12',
+      );
+
+      final read = (await repository.positionsIn(stored.id)).single;
+
+      expect(read.solutionSource, SolutionSource.engine);
+      expect(read.evaluation?.score, const Centipawns(142));
+      expect(read.evaluation?.depth, 12);
+      expect(read.evaluation?.perspective, Side.white);
+      expect(read.solution, judged.solution,
+          reason: 'an engine line is a solution like any other');
+    });
+
+    test('a mate score survives as a mate, not as a large number of pawns',
+        () async {
+      // Why `Score` is sealed. Crammed into centipawns, "mate in 3" reads as
+      // 327.68 pawns at review.
+      final judged = TrainingPosition(
+        id: 'mating',
+        initialPosition: samples.first.initialPosition,
+        solution: samples.first.solution,
+        solutionSource: SolutionSource.engine,
+        evaluation: const PositionEvaluation(
+          score: MateIn(5),
+          depth: 12,
+          perspective: Side.black,
+        ),
+      );
+
+      final stored = await repository.store(
+        name: 'Mate',
+        origin: const FileOrigin('mate.pgn'),
+        contentHash: 'hash-mate',
+        positions: IList([judged]),
+        engineId: 'stockfish-16 depth 12',
+      );
+
+      final read = (await repository.positionsIn(stored.id)).single;
+      expect(read.evaluation?.score, const MateIn(5));
+      expect(read.evaluation?.perspective, Side.black);
+    });
+
+    test('a position the engine could not judge stores as none', () async {
+      // FR-010: still trainable, and review says so rather than showing a blank
+      // pane pretending to be a solution.
+      final unjudged = TrainingPosition(
+        id: 'unjudged',
+        initialPosition: samples.first.initialPosition,
+        solution: VariationTree.empty(samples.first.initialPosition),
+        solutionSource: SolutionSource.none,
+      );
+
+      final stored = await repository.store(
+        name: 'Unjudged',
+        origin: const FileOrigin('mine.pgn'),
+        contentHash: 'hash-none',
+        positions: IList([unjudged]),
+      );
+
+      final read = (await repository.positionsIn(stored.id)).single;
+      expect(read.solutionSource, SolutionSource.none);
+      expect(read.evaluation, isNull);
+    });
+
+    test('an authored position keeps no evaluation at all (FR-011)', () async {
+      final stored = await storeSamples(hash: 'hash-authored');
+      final read = (await repository.positionsIn(stored.id)).first;
+
+      expect(read.solutionSource, SolutionSource.author);
+      expect(read.evaluation, isNull,
+          reason: 'where an author said what they intended, the engine is not '
+              'consulted and nothing is stored');
+    });
+  });
 
   group('invariant 1 — a collection round-trips unchanged', () {
     test('positions come back with their trees, branches and metadata', () async {

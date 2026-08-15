@@ -259,6 +259,54 @@ void main() {
             'going through $provider (Principle II)');
   });
 
+  test('the engine lives in one directory and nowhere else (005 D7)', () {
+    // The second thing after networking that must be provably unreachable from
+    // the rest of the app, and the constitution now requires it in as many
+    // words: "Engine code MUST live in one directory and be unreachable from
+    // the domain and UI layers, on the same terms as networking" (III).
+    //
+    // Written before the implementation exists, which is the ordering feature
+    // 003 used for its Principle I guards — the rule is in place before the
+    // temptation is.
+    const engineDirectory = 'lib/data/engine/';
+
+    final libFiles = Directory('lib')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.dart'));
+
+    for (final file in libFiles) {
+      if (file.path.startsWith(engineDirectory)) continue;
+
+      expect(file.readAsStringSync(), isNot(contains('package:multistockfish')),
+          reason: '${file.path} imports the engine package. It belongs in '
+              '$engineDirectory and nowhere else');
+    }
+
+    // Import directives only, not the whole source. A doc comment that explains
+    // this rule by naming the directory is documentation, not a dependency, and
+    // the first version of this test failed on exactly that — the comment in
+    // `evaluation.dart` saying the engine lives behind `lib/data/engine/`.
+    final reachers = [
+      ...Directory('lib/domain').listSync(recursive: true).whereType<File>(),
+      ...Directory('lib/ui').listSync(recursive: true).whereType<File>(),
+    ]
+        .where((file) => file.path.endsWith('.dart'))
+        .where((file) => file
+            .readAsLinesSync()
+            .where((line) =>
+                line.trimLeft().startsWith('import ') ||
+                line.trimLeft().startsWith('export '))
+            .any((line) => line.contains('data/engine/')))
+        .map((file) => file.path)
+        .toList();
+
+    expect(reachers, isEmpty,
+        reason: 'these files reach into the engine directory. The domain layer '
+            'must not know an engine exists, and the UI reaches it only '
+            'through the import service');
+  });
+
   test('exactly one screen connects or disconnects the account (004 FR-012)',
       () {
     // Before feature 004 the login was in the study picker and the disconnect

@@ -10,6 +10,7 @@ import 'dart:math';
 import 'package:chess_trainer/data/bundled_position_source.dart';
 import 'package:chess_trainer/data/collection_repository.dart';
 import 'package:chess_trainer/data/local/database.dart';
+import 'package:chess_trainer/data/local/evaluation_json.dart';
 import 'package:chess_trainer/data/local/metadata_json.dart';
 import 'package:chess_trainer/data/pgn_position_parser.dart';
 import 'package:chess_trainer/domain/errors.dart';
@@ -93,6 +94,7 @@ class DriftCollectionRepository implements CollectionRepository {
     required String contentHash,
     required IList<TrainingPosition> positions,
     DateTime? now,
+    String? engineId,
   }) async {
     if (positions.isEmpty) {
       throw ArgumentError('a collection needs at least one position');
@@ -128,6 +130,12 @@ class DriftCollectionRepository implements CollectionRepository {
                   initialFen: position.initialPosition.fen,
                   solutionPgn: encodeTree(position.solution),
                   metadataJson: encodeMetadata(position.metadata),
+                  solutionSource:
+                      Value(encodeSolutionSource(position.solutionSource)),
+                  evaluationJson: Value(position.evaluation == null
+                      ? null
+                      : encodeEvaluation(position.evaluation!)),
+                  engineId: Value(engineId),
                 ),
               );
         }
@@ -238,6 +246,10 @@ class DriftCollectionRepository implements CollectionRepository {
       initialPosition: initial,
       solution: decodeTree(row.solutionPgn),
       metadata: decodeMetadata(row.metadataJson),
+      solutionSource: decodeSolutionSource(row.solutionSource),
+      evaluation: row.evaluationJson == null
+          ? null
+          : decodeEvaluation(row.evaluationJson!),
     );
   }
 

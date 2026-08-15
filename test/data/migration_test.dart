@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../generated/schema.dart';
 import '../generated/schema_v1.dart' as v1;
+import '../generated/schema_v2.dart' as v2;
 
 /// The migration harness (002 research D9, FR-025).
 ///
@@ -68,7 +69,7 @@ void main() {
     await verifier.migrateAndValidate(database, 2);
   });
 
-  test('v1 upgrades to v2 and the schema matches', () async {
+  test('v1 upgrades to the current schema and it matches', () async {
     final connection = await verifier.startAt(1);
     final database = AppDatabase.forExecutor(connection);
     addTearDown(database.close);
@@ -77,7 +78,14 @@ void main() {
     // index against the recorded v2 schema — so a migration that creates the
     // tables *slightly* differently from `createAll` fails here rather than on
     // a player's phone.
-    await verifier.migrateAndValidate(database, 2);
+    //
+    // **Validated against the current version, not against v2**, and that is
+    // forced rather than chosen. The v1 → v2 step calls `createTable`, which
+    // builds tables from today's definitions — so a database upgraded from v1
+    // arrives with v3's columns and can never match the v2 snapshot. What is
+    // worth asserting is that a v1 database reaches the schema this app
+    // actually creates, which is what this does.
+    await verifier.migrateAndValidate(database, 3);
   });
 
   test('a session played at v1 survives the upgrade intact (FR-040)', () async {
@@ -107,7 +115,7 @@ void main() {
     // Opening it with the current app is the update happening.
     final upgraded = AppDatabase.forExecutor(schema.newConnection());
     addTearDown(upgraded.close);
-    await verifier.migrateAndValidate(upgraded, 2);
+    await verifier.migrateAndValidate(upgraded, 3);
 
     final sessions = await upgraded.select(upgraded.sessions).get();
     final grades = await upgraded.select(upgraded.grades).get();
@@ -119,6 +127,60 @@ void main() {
     // And the library tables now exist, empty and ready to be seeded.
     expect(await upgraded.select(upgraded.collections).get(), isEmpty);
     expect(await upgraded.select(upgraded.positions).get(), isEmpty);
+  });
+
+  test('the app creates exactly the schema recorded for version 3', () async {
+    final connection = await verifier.startAt(3);
+    final database = AppDatabase.forExecutor(connection);
+    addTearDown(database.close);
+
+    await verifier.migrateAndValidate(database, 3);
+  });
+
+  test('a library imported at v2 survives the upgrade, and reads as authored '
+      '(005 FR-021, FR-022)', () async {
+    // The property this feature has to prove. Feature 005 lets a position be
+    // judged by an engine, and every position that already exists was judged by
+    // an author — that is not an assumption, it is a fact about what v2 could
+    // store: before 005, an entry with no moves was rejected at import.
+    //
+    // So the migration sets `author` for every existing row, and this asserts
+    // it. If it ever set `none` instead, a player's whole library would review
+    // as "no evaluation could be produced" after an update.
+    final schema = await verifier.schemaAt(2);
+
+    final old = v2.DatabaseAtV2(schema.newConnection());
+    final importedAt = DateTime.utc(2026, 8, 14).millisecondsSinceEpoch;
+    await old.customStatement(
+      'INSERT INTO collections (id, name, origin_kind, origin_ref, '
+      'imported_at, content_hash) '
+      "VALUES ('col-1', 'Imported before the engine', 'file', 'study.pgn', "
+      "$importedAt, 'hash-1')",
+    );
+    await old.customStatement(
+      'INSERT INTO positions (id, collection_id, ordinal, initial_fen, '
+      'solution_pgn, metadata_json) '
+      "VALUES ('pos-1', 'col-1', 0, "
+      "'5rk1/5Npp/8/8/8/1Q6/6PP/6K1 w - - 0 1', '1. Nh6+', '{}')",
+    );
+    await old.close();
+
+    final upgraded = AppDatabase.forExecutor(schema.newConnection());
+    addTearDown(upgraded.close);
+    await verifier.migrateAndValidate(upgraded, 3);
+
+    final positions = await upgraded.select(upgraded.positions).get();
+    expect(positions.single.id, 'pos-1');
+    expect(positions.single.solutionPgn, '1. Nh6+',
+        reason: 'nothing is re-parsed, re-evaluated or re-imported');
+    expect(positions.single.solutionSource, 'author',
+        reason: 'every position that could already exist had an author\'s '
+            'line, because v2 rejected entries with no moves');
+    expect(positions.single.evaluationJson, isNull);
+    expect(positions.single.engineId, isNull);
+
+    final collections = await upgraded.select(upgraded.collections).get();
+    expect(collections.single.name, 'Imported before the engine');
   });
 
   test('the schema snapshot is in step with the database', () async {

@@ -34,8 +34,8 @@ final class MateIn extends Score {
 }
 
 @immutable
-class Evaluation {
-  const Evaluation({
+class PositionEvaluation {
+  const PositionEvaluation({
     required this.score,
     required this.depth,
     required this.perspective,
@@ -46,6 +46,10 @@ class Evaluation {
   final Side perspective;
 }
 ```
+
+Named `PositionEvaluation` rather than `Evaluation`: `flutter_test` exports an `Evaluation` of
+its own from its accessibility API, and every test touching both would otherwise need a `hide`.
+Found on the first test that used it.
 
 No engine type, no UCI string, no process handle reaches the domain. `Side` is `dartchess`'s,
 which the domain already depends on.
@@ -81,7 +85,7 @@ class EngineLine {
   /// The principal variation, capped (§4). Legal from the position asked about.
   final IList<Move> moves;
 
-  final Evaluation evaluation;
+  final PositionEvaluation evaluation;
 }
 ```
 
@@ -183,7 +187,7 @@ parts from the solution's, and that is FR-013 whichever produced the solution.
    (FR-004, D9).
 4. An evaluator returning null for one entry leaves the rest of the import untouched, and that
    entry trainable (FR-010).
-5. Nothing under `lib/ui/training/` names `SolutionSource`, `Evaluation`, `Score`, `Evaluator`, or
+5. Nothing under `lib/ui/training/` names `SolutionSource`, `PositionEvaluation`, `Score`, `Evaluator`, or
    anything under `lib/data/engine/` (FR-020, D7).
 6. Nothing outside `lib/data/engine/` imports the engine package (D7).
 7. **No evaluator method is called during a session** — setup, training, commits, review or

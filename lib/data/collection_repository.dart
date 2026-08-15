@@ -43,6 +43,14 @@ abstract interface class CollectionRepository {
     required String contentHash,
     required IList<TrainingPosition> positions,
     DateTime? now,
+
+    /// What evaluated the positions that have an evaluation, if anything did.
+    ///
+    /// One value for a whole import, because one import is evaluated by one
+    /// engine. Stored as provenance rather than for display: it is what stops a
+    /// position imported by an old build being silently compared with one
+    /// imported by a new one (005 research D5).
+    String? engineId,
   });
 
   /// The collection already holding this content, if any (FR-010, 003 D13).
