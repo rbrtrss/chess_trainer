@@ -205,10 +205,12 @@ the screen's tallest state and an entirely ordinary one. A two-line bar needs ab
 choice was never "small print or a sheet"; it was **small print or the screen's primary action**,
 and a footnote does not outrank the Start button.
 
-**What it costs.** SC-002 as literally worded — "one action plus the login itself" — is not met:
-connecting is now two taps plus the login. That is recorded here and in
-[tasks.md](./tasks.md#what-was-done-and-what-was-not) rather than reinterpreted, because the
-success criterion was written to mean something and this does not meet it.
+**What it costs.** FR-003 ("in one action") and SC-002 ("one action plus the login itself") as
+originally worded are not met: connecting is two taps plus the login. Both were **amended on
+2026-08-15**, by the owner's decision, to allow two — see
+[spec.md, Amendments](./spec.md#amendments). The amendment records the reasoning rather than
+quietly restating the requirement, and it does not excuse the fact that FR-003 went unnoticed
+through implementation, the device pass and a code review, while SC-002 was flagged throughout.
 
 The alternatives, and why each is worse:
 

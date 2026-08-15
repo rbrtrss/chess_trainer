@@ -40,6 +40,38 @@ is not evidence about a position — but the check is still owed, because this f
 element to the screen a session starts from. The account must not follow the player into
 training, and nothing about it may vary with what is in the library.
 
+## Amendments
+
+### 2026-08-15 — the login takes two actions, not one
+
+**Changed**: FR-003 and SC-002, both of which required the login to start in *one* action from the
+home screen. They now allow two: asking to connect, and confirming after the app has said what the
+login grants.
+
+**Why**: FR-007 requires the app to state what the login is for and what it grants *where the
+login is offered*. The design put that disclosure in the account bar as small print, which assumed
+a two-line bar was free. It is not. Bisecting the bar's height against `resume_test.dart` gives a
+hard budget — 56 logical pixels passes, 72 and 88 fail — because above that the **Start** button
+drops off a 400×900 phone that is also showing the offer to resume an unfinished session.
+
+So the real choice was never "small print or a sheet". It was **the disclosure or the screen's
+primary action**, and a footnote does not outrank the button the screen exists for. The disclosure
+moved to a sheet that *Connect* opens, and that sheet costs a tap.
+
+**Why amend rather than fix**: satisfying "one action" means either dropping the disclosure — which
+just moves the hole from FR-003 to FR-007 — or making the bar taller and raising the test surface
+to a device that can afford it, which trades a known-good layout on small phones for a tap on
+every phone. The constitution's bar for added complexity is "a concrete problem, not an
+anticipated one", and nobody has met the two-tap login and complained. The disclosure before
+leaving the app is worth more than the tap.
+
+**What this does not excuse**: the requirement went unmet through implementation, the whole device
+pass, and a code review, and was noticed only when the requirements were re-read one by one
+against the evidence. SC-002 was flagged as a deviation throughout; FR-003 says the same thing in
+the section that carries the MUSTs and was never named. Recorded in
+[research D6a](./research.md#d6a-the-disclosure-moved-to-a-sheet-because-the-bar-does-not-fit-two-lines)
+and in [tasks.md](./tasks.md#what-was-done-and-what-was-not).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Connect my account before I need it (Priority: P1)
@@ -175,8 +207,11 @@ competing account control.
   without the player navigating anywhere or performing any action to find out.
 - **FR-002**: System MUST name the connected account when there is one, so the player knows
   which account is in use.
-- **FR-003**: Users MUST be able to start a Lichess login from the home screen, in one action,
-  without first entering an import.
+- **FR-003**: Users MUST be able to reach a Lichess login from the home screen without first
+  entering an import, and without hunting for it. Two actions at most: asking to connect, and
+  confirming once the app has said what the login grants. *(Amended 2026-08-15 — see
+  [Amendments](#amendments). This originally said "in one action", which the disclosure FR-007
+  requires turned out to make impossible.)*
 - **FR-004**: System MUST derive the displayed connection state from what is already stored on
   the device, and MUST NOT make any network request to render the home screen or to start the
   app.
@@ -244,8 +279,10 @@ competing account control.
 
 - **SC-001**: A player can tell whether a Lichess account is connected in zero navigation steps
   from launch.
-- **SC-002**: A player can go from launching the app to a completed Lichess login in one action
-  plus the login itself, without visiting the import screen.
+- **SC-002**: A player can go from launching the app to a completed Lichess login in no more than
+  two actions plus the login itself, without visiting the import screen, and reads what the login
+  grants before leaving the app. *(Amended 2026-08-15 — see [Amendments](#amendments); this said
+  "one action".)*
 - **SC-003**: A player who never connects an account can install the app, import a file, and
   train for as long as they like without the app asking them to log in — the question is put to
   them zero times unprompted.

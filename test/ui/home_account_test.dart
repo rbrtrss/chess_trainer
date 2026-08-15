@@ -217,6 +217,36 @@ void main() {
       expect(find.textContaining('roberto'), findsOneWidget);
     });
 
+    testWidgets('the whole login is two actions from launch (FR-003, SC-002)',
+        (tester) async {
+      // FR-003 originally said one action, the disclosure would not fit in the
+      // bar, and it was amended to two — see spec.md, Amendments. It went unmet
+      // for a day because nothing was checking it, which is the actual lesson:
+      // a requirement nobody asserts is a requirement nobody keeps. This is the
+      // assertion that was missing.
+      await pumpHome(tester);
+
+      var actions = 0;
+
+      // Zero navigation: the control is on the first screen already.
+      expect(find.byKey(const Key('connect-lichess')), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('connect-lichess')));
+      actions++;
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('confirm-log-in')));
+      actions++;
+      await tester.pumpAndSettle();
+
+      expect(auth.logIns, 1, reason: 'the login must have actually started');
+      expect(actions, lessThanOrEqualTo(2),
+          reason: 'FR-003 allows two actions at most: asking to connect, and '
+              'confirming once the app has said what the login grants. A third '
+              'step means the amended requirement has been broken too');
+      expect(find.byKey(const Key('account-connected')), findsOneWidget);
+    });
+
     testWidgets('dismissing the sheet asks for nothing', (tester) async {
       await pumpHome(tester);
 

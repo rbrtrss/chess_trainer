@@ -55,6 +55,11 @@
 ## Notes
 
 - Validated on 2026-08-15 with no failing items and no clarification markers raised.
+- **Amended the same day.** FR-003 and SC-002 required the login to start in one action; the
+  disclosure FR-007 requires does not fit in a bar that leaves the Start button on screen, so both
+  were relaxed to two. See [spec.md, Amendments](../spec.md#amendments). Worth noting against the
+  "requirements are testable and unambiguous" item above: FR-003 was testable and unambiguous, and
+  still went unmet for a day, because nothing was checking it.
 - One decision was made rather than asked, and is the one most worth pushing back on: **the
   library's account section is removed** (FR-012), not left in place alongside the new one.
   Recorded in Assumptions.

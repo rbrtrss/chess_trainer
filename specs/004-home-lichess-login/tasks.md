@@ -70,7 +70,7 @@ the screen then names the account — with no import performed at any point.
 
 - [X] T011 [US1] Create `lib/ui/account/account_bar.dart` — a `ConsumerWidget` watching `lichessAccountProvider`, rendering the states and keys in [account-api.md §4](./contracts/account-api.md). ~~Handle `AccountExpired` by falling through to the disconnected rendering for now~~ — **done differently**: the expired rendering was written straight away rather than left provisional. The fall-through existed only to keep US1 and US3 separable, and the exhaustive `switch` made writing the real thing cheaper than writing a placeholder with a comment explaining itself
 - [X] T012 [US1] Give the bar one constant height across all four states including `account-bar-unknown`, which renders reserved space and nothing else — no spinner, no guessed state (research D5, SC-005)
-- [X] T013 [US1] ~~Put the permissions line in the disconnected state of the bar~~ — **reversed by measurement**: the line does not fit. It moved to the disclosure sheet that `connect-lichess` opens, and the bar is one line in every state (research D6a; the bisection is in "What was done, and what was not" below). FR-007 is met, SC-002 is not — see below
+- [X] T013 [US1] ~~Put the permissions line in the disconnected state of the bar~~ — **reversed by measurement**: the line does not fit. It moved to the disclosure sheet that `connect-lichess` opens, and the bar is one line in every state (research D6a; the bisection is in "What was done, and what was not" below). FR-007 is met; FR-003 and SC-002 were not, and were amended on 2026-08-15 rather than worked around — see below and [spec.md, Amendments](./spec.md#amendments)
 - [X] T014 [US1] Mount the bar in `lib/ui/session/session_setup_screen.dart` below the scrolling body, so it appears in both body states — the setup form and `_EmptyLibrary` (FR-001)
 - [X] T015 [US1] Wire **Connect** in `lib/ui/account/account_bar.dart` to `connectionControllerProvider.logIn()`: disable the button while it runs, report nothing when it returns null, and show `messageForNetworkError` in a snackbar keyed `account-login-failure` when it throws (FR-009, FR-010, research D10)
 - [X] T016 [P] [US1] Create `test/ui/home_account_test.dart` — the bar renders `account-disconnected` with no stored credential and `account-connected` naming the user with one; **Connect** reaches the login; a cancelled login leaves the screen unchanged with no message; a failed login shows the snackbar and leaves the bar disconnected
@@ -225,12 +225,17 @@ sheet", it was **small print or the screen's primary action**. The disclosure mo
 that `connect-lichess` opens, the bar is one line at 56, and D6a records the alternatives that
 were rejected.
 
-**This costs SC-002.** "A player can go from launching the app to a completed Lichess login in
-one action plus the login itself" is now two actions plus the login — Connect, then Log in to
-Lichess. It is recorded here rather than reinterpreted, because the criterion was written to mean
-something. If it matters more than the disclosure does, the fix is to drop the sheet and rely on
-Lichess's own authorization page, which names the scope under a client id pointing at this
-repository; that is a decision for whoever owns the requirement, not for the implementation.
+**This cost FR-003 and SC-002**, which both required the login to start in *one* action.
+Connecting is two: Connect, then Log in to Lichess.
+
+SC-002 was flagged as a deviation from the moment the bar was measured. **FR-003 was not**, and it
+says the same thing in the section that carries the MUSTs — it went unnoticed through the rest of
+implementation, the whole device pass and a code review, and surfaced only when the requirements
+were re-read one at a time against the evidence. Checking off 41 tasks is not the same as
+satisfying a specification, and this is what the difference looks like.
+
+Both were **amended on 2026-08-15**, by the owner's decision, to allow two actions; the reasoning
+and the alternatives rejected are in [spec.md, Amendments](./spec.md#amendments).
 
 ### What went better than planned
 
