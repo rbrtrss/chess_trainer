@@ -114,6 +114,22 @@ void main() {
         'lichessAccountProvider',
         'connectionController',
         'username',
+        // Feature 005 gave the app, for the first time, the ability to say
+        // which move was *better*. Everything above is evidence about a
+        // position; an evaluation is the answer itself, and it is the strongest
+        // thing this app has ever held while a player is calculating.
+        //
+        // Nothing puts it on a training screen today. This rule exists so
+        // nothing can start to — and the constitution now requires it in as
+        // many words (Principle III, v1.1.0).
+        'SolutionSource',
+        'PositionEvaluation',
+        'Centipawns',
+        'MateIn',
+        'Evaluator',
+        'EngineLine',
+        'stockfish',
+        'Stockfish',
       ]) {
         expect(source, isNot(contains(forbidden)),
             reason: '${file.path} reads $forbidden — the training screen must '

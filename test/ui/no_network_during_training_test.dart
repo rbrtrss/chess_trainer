@@ -190,6 +190,25 @@ void main() {
         reason: 'the player asked for this one, and it must actually go');
   });
 
+  testWidgets('an engine-judged position needs no network either (005 FR-008)',
+      (tester) async {
+    // Feature 005 is the first content feature since 002 that adds no network
+    // path at all: the engine is on the device, so a position judged by one
+    // reviews on a plane exactly as an authored one does. Worth asserting
+    // rather than assuming, since the whole argument for embedding a 39 MB
+    // neural network was that this stays true (005 research D10).
+    await pumpApp(tester);
+
+    await tester.tap(find.byKey(const Key('start-session')));
+    await tester.pumpAndSettle();
+    for (var i = 0; i < 3; i++) {
+      await tester.tap(find.byKey(const Key('commit-attempt')));
+      await tester.pumpAndSettle();
+    }
+
+    expectNoContact('a whole session on engine-judged content');
+  });
+
   testWidgets('resuming an interrupted session makes none', (tester) async {
     await pumpApp(tester);
     await tester.tap(find.byKey(const Key('start-session')));

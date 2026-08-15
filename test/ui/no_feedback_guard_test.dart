@@ -1,6 +1,13 @@
 import 'dart:io';
 
 import 'package:chess_trainer/data/pgn_position_parser.dart';
+import 'package:chess_trainer/domain/position/evaluation.dart';
+import 'package:chess_trainer/domain/position/training_position.dart';
+import 'package:chess_trainer/domain/tree/move_path.dart';
+import 'package:chess_trainer/domain/tree/variation_tree.dart';
+// `File` hidden: dartchess exports the a–h kind, and this file already uses
+// dart:io's for reading the hostile fixture.
+import 'package:dartchess/dartchess.dart' hide File;
 import 'package:chessground/chessground.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
@@ -174,6 +181,7 @@ void main() {
 
   _resumptionGuards();
   _importGuards();
+  _engineGuards();
 }
 
 /// Feature 003's guards: imported content must reach the training screen with
@@ -449,4 +457,97 @@ String _describe(Widget widget) {
     InkWell() => 'InkWell$key',
     _ => '${widget.runtimeType}$key',
   };
+}
+
+/// Feature 005's guard: an engine's evaluation is not evidence *about* the
+/// answer, it **is** the answer, and it must never reach a training screen
+/// (FR-016, FR-018, FR-020, SC-004, SC-010).
+///
+/// The hardest case this guard has had. Everything it withheld before — titles,
+/// comments, NAGs — described a position. This describes how good the move is.
+void _engineGuards() {
+  group('an engine-judged position gives nothing away (005 FR-016, FR-018)', () {
+    /// The same position, once with an author's line and once with an engine's
+    /// — and an evaluation that says, in a number, exactly how good it is.
+    ///
+    /// This is the hardest case this guard has ever had. Everything it withheld
+    /// before was *evidence* about a position: a title, a comment, a NAG. An
+    /// evaluation is the answer.
+    IList<TrainingPosition> pair({required bool judged}) {
+      final start = Chess.fromSetup(
+          Setup.parseFen('5rk1/5Npp/8/8/8/1Q6/6PP/6K1 w - - 0 1'));
+      var tree = VariationTree.empty(start);
+      tree = tree
+          .play(MovePath.root, const NormalMove(from: Square.f7, to: Square.h6))
+          .tree;
+
+      return IList([
+        TrainingPosition(
+          id: judged ? 'judged' : 'authored',
+          initialPosition: start,
+          solution: tree,
+          solutionSource:
+              judged ? SolutionSource.engine : SolutionSource.author,
+          evaluation: judged
+              ? const PositionEvaluation(
+                  score: MateIn(5),
+                  depth: 12,
+                  perspective: Side.white,
+                )
+              : null,
+        ),
+      ]);
+    }
+
+    /// Everything the screen would say out loud, plus every string in its tree.
+    List<String> everythingOnScreen(WidgetTester tester) => [
+          ...tester
+              .widgetList<Text>(find.byType(Text))
+              .map((text) => text.data ?? ''),
+          ...tester
+              .widgetList<Semantics>(find.byType(Semantics))
+              .map((widget) => widget.properties.label ?? ''),
+          ...tester
+              .widgetList<Tooltip>(find.byType(Tooltip))
+              .map((widget) => widget.message ?? ''),
+        ];
+
+    testWidgets('no evaluation, score or depth is reachable', (tester) async {
+      await pumpTrainingScreen(tester, positions: pair(judged: true));
+
+      final said = everythingOnScreen(tester).join(' ').toLowerCase();
+
+      for (final forbidden in const [
+        'mate',
+        'engine',
+        'evaluation',
+        'centipawn',
+        'depth',
+        'stockfish',
+        '+',
+        'best',
+      ]) {
+        expect(said, isNot(contains(forbidden)),
+            reason: 'the training screen said "$forbidden" for a position the '
+                'engine has judged as a forced mate. An evaluation is not '
+                'evidence about the answer, it *is* the answer');
+      }
+    });
+
+    testWidgets('it renders identically to the same position authored (SC-004)',
+        (tester) async {
+      // The two differ only in where their solution came from — same board,
+      // same line, same everything the player is allowed to see. If the screens
+      // differ at all, the difference is the leak.
+      await pumpTrainingScreen(tester, positions: pair(judged: false));
+      final authored = everythingOnScreen(tester);
+
+      await pumpTrainingScreen(tester, positions: pair(judged: true));
+      final judged = everythingOnScreen(tester);
+
+      expect(judged, authored,
+          reason: 'a player must not be able to tell which positions in a '
+              'session have an engine behind them');
+    });
+  });
 }
